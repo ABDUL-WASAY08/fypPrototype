@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TOM — Train Optimal Model</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#F9F8F6;--bg-warm:#E1DCC9;--card:#F0EBE1;--border:#D3C8B4;--primary:#1F150C;--accent:#412D15;--text:#1F150C;--text-muted:#7A6B58;--font:'Inter',-apple-system,sans-serif;--font-alt:'Plus Jakarta Sans',-apple-system,sans-serif}
+    html{scroll-behavior:auto}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:var(--bg)}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+    #preloader{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;transition:opacity .8s,visibility .8s}
+    #preloader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+    .loader-ring{width:56px;height:56px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loader-text{font-size:13px;letter-spacing:4px;text-transform:uppercase;color:var(--text-muted)}
+    #scrollProgress{position:fixed;top:0;left:0;width:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--primary));z-index:99998;transition:width .1s linear}
+    .screen{display:none;min-height:100vh;position:relative;opacity:0;transform:translateY(20px) scale(.98);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}
+    .screen.active{display:block;opacity:1;transform:translateY(0) scale(1)}
+    .container{max-width:1280px;margin:0 auto;padding:0 32px}
+    .main-nav{position:fixed;top:0;left:0;right:0;z-index:999;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;background:rgba(249,248,246,0.85);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border-bottom:1px solid rgba(211,200,180,0.2);transition:transform .5s cubic-bezier(.16,1,.3,1),background .4s}
+    .main-nav.hidden-nav{transform:translateY(-100%)}
+    .nav-logo{display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0}
+    .logo-icon{width:34px;height:34px;position:relative;flex-shrink:0}
+    .logo-icon svg{width:100%;height:100%;display:block}
+    .logo-pulse{position:absolute;inset:-3px;border-radius:50%;border:2px solid var(--accent);opacity:0;animation:pulseGlow 2.5s ease-in-out infinite}
+    @keyframes pulseGlow{0%,100%{transform:scale(1);opacity:0}50%{transform:scale(1.35);opacity:.35}}
+    .logo-text{font-family:var(--font-alt);font-weight:800;font-size:17px;letter-spacing:-.5px}
+    .logo-text span{color:var(--accent)}
+    .nav-links{display:flex;align-items:center;gap:4px}
+    .nav-link{font-size:12.5px;font-weight:500;letter-spacing:.3px;color:var(--text-muted);cursor:pointer;position:relative;background:none;border:none;font-family:var(--font);padding:8px 14px;border-radius:8px;transition:all .3s ease}
+    .nav-link:hover,.nav-link.active{color:var(--text);background:rgba(211,200,180,0.2)}
+    .nav-cta{padding:9px 22px;background:var(--primary);color:var(--card);border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s ease;font-family:var(--font);white-space:nowrap}
+    .nav-cta:hover{background:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(31,21,12,0.2)}
+    #landing{padding-top:0}
+    .hero{min-height:100vh;display:flex;align-items:center;position:relative;padding:140px 0 80px;overflow:hidden}
+    #particle-canvas{position:absolute;inset:0;z-index:0;pointer-events:none}
+    .hero-content{position:relative;z-index:1;max-width:820px}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;background:var(--card);border:1px solid var(--border);border-radius:100px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:30px;color:var(--accent)}
+    .hero-badge-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:dotPulse 1.5s ease-in-out infinite}
+    @keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .hero-title{font-family:var(--font-alt);font-size:clamp(44px,6.5vw,82px);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:22px}
+    .hero-title .line{display:block;overflow:hidden}
+    .hero-title .line span{display:block;transform:translateY(100%);opacity:0}
+    .hero-title .highlight{color:var(--accent);position:relative}
+    .hero-title .highlight::after{content:'';position:absolute;bottom:4px;left:0;right:0;height:8px;background:rgba(65,45,21,0.15);border-radius:4px;z-index:-1}
+    .hero-desc{font-size:17px;line-height:1.7;color:var(--text-muted);max-width:540px;margin-bottom:44px;opacity:0;transform:translateY(30px)}
+    .hero-actions{display:flex;gap:16px;flex-wrap:wrap}
+    .magnet-btn{position:relative;padding:15px 38px;border-radius:12px;font-size:14.5px;font-weight:600;border:none;cursor:pointer;font-family:var(--font);overflow:hidden;will-change:transform;transition:transform .15s ease}
+    .magnet-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;background:var(--accent);transform:scaleX(0);transform-origin:right;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+    .magnet-btn-primary{background:var(--primary);color:var(--card)}
+    .magnet-btn-primary:hover::before{transform:scaleX(1);transform-origin:left}
+    .magnet-btn-secondary{background:transparent;color:var(--text);border:1.5px solid var(--border)}
+    .magnet-btn-secondary::before{background:var(--card)}
+    .magnet-btn-secondary:hover::before{transform:scaleX(1);transform-origin:left}
+    .magnet-btn span{position:relative;z-index:1;display:inline-block}
+    .magnet-btn .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.15);transform:scale(0);animation:rippleAnim .6s ease-out;pointer-events:none}
+    @keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+    .hero-scroll-indicator{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-muted);font-size:10px;letter-spacing:2px;text-transform:uppercase;animation:float 2.5s ease-in-out infinite;opacity:.6}
+    .hero-scroll-indicator .scroll-line{width:1px;height:36px;background:linear-gradient(to bottom,var(--border),transparent)}
+    @keyframes float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
+    .reveal{opacity:0;transform:translateY(40px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+    .reveal.visible{opacity:1;transform:translateY(0)}
+    .reveal-left{opacity:0;transform:translateX(-40px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+    .reveal-left.visible{opacity:1;transform:translateX(0)}
+    .reveal-right{opacity:0;transform:translateX(40px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+    .reveal-right.visible{opacity:1;transform:translateX(0)}
+    .reveal-scale{opacity:0;transform:scale(.9);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+    .reveal-scale.visible{opacity:1;transform:scale(1)}
+    .section{padding:120px 0}
+    .section-label{font-size:11.5px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;font-weight:600}
+    .section-title{font-family:var(--font-alt);font-size:clamp(34px,4.5vw,52px);font-weight:800;letter-spacing:-1.5px;margin-bottom:14px}
+    .section-desc{font-size:16px;color:var(--text-muted);max-width:500px;line-height:1.7;margin-bottom:52px}
+    .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+    .feature-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:38px 30px;cursor:pointer;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s ease;perspective:800px;transform-style:preserve-3d;will-change:transform}
+    .feature-card:hover{box-shadow:0 24px 64px rgba(31,21,12,0.08)}
+    .feature-icon{width:46px;height:46px;border-radius:14px;background:var(--primary);display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:var(--card);font-size:20px}
+    .feature-card h3{font-size:19px;font-weight:700;margin-bottom:10px}
+    .feature-card p{font-size:13.5px;line-height:1.7;color:var(--text-muted)}
+    .feature-stat{display:inline-flex;align-items:center;gap:6px;margin-top:18px;font-size:12.5px;font-weight:600;color:var(--accent)}
+    .blog-section{padding:120px 0;background:var(--bg-warm);overflow:hidden}
+    .blog-track-wrap{position:relative;overflow:hidden;cursor:grab;user-select:none;padding:0 32px}
+    .blog-track-wrap:active{cursor:grabbing}
+    .blog-track{display:flex;gap:24px;will-change:transform}
+    .blog-card{min-width:340px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s ease;flex-shrink:0}
+    .blog-card:hover{transform:scale(1.03) translateY(-6px);box-shadow:0 20px 56px rgba(31,21,12,0.08)}
+    .blog-card-tag{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px}
+    .blog-card h4{font-size:17px;font-weight:700;margin-bottom:8px;line-height:1.35}
+    .blog-card p{font-size:12.5px;color:var(--text-muted);line-height:1.6;margin-bottom:18px}
+    .blog-card-author{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:500}
+    .blog-card-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:var(--card);font-size:11px;font-weight:700}
+    .contributors-section{padding:120px 0}
+    .bubble-grid{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;position:relative;min-height:300px}
+    .contributor-bubble{width:76px;height:76px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;cursor:pointer;transition:transform .5s cubic-bezier(.34,1.56,.64,1),box-shadow .5s ease,border-color .5s ease;position:relative;color:var(--text)}
+    .contributor-bubble:hover{transform:scale(1.3) translateY(-10px);border-color:var(--accent);box-shadow:0 16px 48px rgba(65,45,21,0.2);z-index:2}
+    .contributor-bubble .tooltip{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%) scale(.8);background:var(--primary);color:var(--card);padding:5px 12px;border-radius:8px;font-size:11px;font-weight:500;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s ease}
+    .contributor-bubble:hover .tooltip{opacity:1;transform:translateX(-50%) scale(1)}
+    .faq-section{padding:120px 0;background:var(--card)}
+    .faq-grid{max-width:700px;margin:0 auto}
+    .faq-item{border-bottom:1px solid var(--border);padding:22px 0;cursor:pointer;transition:background .3s;border-radius:4px;padding-left:12px;padding-right:12px}
+    .faq-item:hover{background:rgba(211,200,180,0.15)}
+    .faq-q{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:15.5px;gap:16px}
+    .faq-q .icon{transition:transform .5s cubic-bezier(.34,1.56,.64,1);font-size:22px;font-weight:300;color:var(--accent);flex-shrink:0}
+    .faq-item.open .faq-q .icon{transform:rotate(45deg)}
+    .faq-a{max-height:0;overflow:hidden;transition:max-height .5s ease,padding .5s ease,opacity .4s ease;font-size:14px;color:var(--text-muted);line-height:1.7;opacity:0}
+    .faq-item.open .faq-a{max-height:300px;padding-top:14px;opacity:1}
+    .contact-glass{margin-top:72px;padding:52px;border-radius:24px;background:rgba(249,248,246,0.6);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(211,200,180,0.4);box-shadow:0 20px 56px rgba(31,21,12,0.04)}
+    .contact-glass h3{font-size:26px;font-weight:700;margin-bottom:6px}
+    .contact-glass p{color:var(--text-muted);margin-bottom:30px;font-size:14.5px}
+    .input-group{position:relative;margin-bottom:18px}
+    .input-group input,.input-group textarea{width:100%;padding:15px 18px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);font-size:14.5px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .4s,box-shadow .4s;resize:vertical}
+    .input-group input:focus,.input-group textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(65,45,21,0.08)}
+    .input-group label{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:13.5px;color:var(--text-muted);pointer-events:none;transition:all .3s cubic-bezier(.16,1,.3,1);background:var(--bg);padding:0 4px}
+    .input-group.focused label,.input-group.filled label{top:0;transform:translateY(-50%) scale(.85);color:var(--accent)}
+    .input-group textarea~label{top:18px;transform:none}
+    .input-group.focused textarea~label,.input-group.filled textarea~label{top:0;transform:translateY(-50%) scale(.85)}
+    #auth{display:none;min-height:100vh;align-items:center;justify-content:center;padding:120px 20px}
+    #auth.active{display:flex}
+    .auth-card{width:100%;max-width:420px;padding:44px 36px;border-radius:24px;background:var(--card);border:1px solid var(--border);box-shadow:0 32px 96px rgba(31,21,12,0.06)}
+    .auth-tabs{display:flex;gap:4px;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:28px;position:relative}
+    .auth-tab{flex:1;padding:11px;text-align:center;border:none;background:none;font-size:12.5px;font-weight:600;cursor:pointer;border-radius:10px;transition:all .35s ease;font-family:var(--font);color:var(--text-muted);position:relative;z-index:1}
+    .auth-tab.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+    .auth-form{display:none;animation:fadeUp .4s ease}
+    .auth-form.active{display:block}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .auth-btn{width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .35s ease;font-family:var(--font);color:var(--text);margin-bottom:10px}
+    .auth-btn:hover{border-color:var(--accent);background:var(--card);transform:translateY(-2px);box-shadow:0 8px 24px rgba(31,21,12,0.06)}
+    .auth-btn-primary{background:var(--primary);color:var(--card);border-color:var(--primary)}
+    .auth-btn-primary:hover{background:var(--accent);border-color:var(--accent)}
+    .auth-divider{display:flex;align-items:center;gap:16px;margin:22px 0;color:var(--text-muted);font-size:11.5px}
+    .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    #home{padding-top:0}
+    .dashboard{display:flex;min-height:100vh;padding-top:72px;position:relative}
+    #gridCanvas{position:fixed;top:72px;left:240px;right:0;bottom:0;z-index:0;pointer-events:none;opacity:.2;transition:left .5s cubic-bezier(.16,1,.3,1)}
+    .sidebar{width:240px;padding:20px 12px;border-right:1px solid rgba(211,200,180,0.25);flex-shrink:0;position:fixed;top:72px;bottom:0;overflow-y:auto;background:var(--bg);transition:transform .5s cubic-bezier(.16,1,.3,1);z-index:10}
+    .sidebar.collapsed{transform:translateX(-100%)}
+    .sidebar::-webkit-scrollbar{width:3px}
+    .sidebar-toggle{position:fixed;bottom:24px;left:24px;z-index:20;width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;font-size:16px;box-shadow:0 4px 16px rgba(0,0,0,0.04)}
+    .sidebar-toggle:hover{background:var(--primary);color:var(--card);border-color:var(--primary);transform:scale(1.05)}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:all .3s ease;font-size:13.5px;font-weight:500;color:var(--text-muted);margin-bottom:2px;border:none;background:none;width:100%;font-family:var(--font);text-align:left}
+    .sidebar-item:hover{background:var(--card);color:var(--text);transform:translateX(4px)}
+    .sidebar-item.active{background:var(--card);color:var(--text);font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.03);border-left:3px solid var(--accent)}
+    .sidebar-section{font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);padding:16px 14px 6px;font-weight:600}
+    .main-content{flex:1;margin-left:240px;padding:32px 40px;transition:margin-left .5s cubic-bezier(.16,1,.3,1);position:relative;z-index:1}
+    .main-content.expanded{margin-left:0}
+    .main-content h1{font-family:var(--font-alt);font-size:30px;font-weight:800;margin-bottom:2px}
+    .main-content .greeting{color:var(--text-muted);margin-bottom:28px;font-size:14.5px}
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:28px}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;transition:transform .4s ease,box-shadow .4s ease}
+    .stat-card:hover{transform:translateY(-6px);box-shadow:0 16px 48px rgba(31,21,12,0.06)}
+    .stat-card .label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px}
+    .stat-card .value{font-size:30px;font-weight:800;letter-spacing:-1px;transition:all .3s}
+    .stat-card .change{font-size:12.5px;color:#2D8A4E;font-weight:600;margin-top:3px}
+    .chart-placeholder{background:var(--card);border:1px solid var(--border);border-radius:16px;height:260px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;margin-bottom:28px;position:relative;overflow:hidden}
+    .chart-bars{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:flex-end;gap:6px;padding:0 32px 20px;height:100%}
+    .chart-bar{flex:1;border-radius:3px 3px 0 0;background:linear-gradient(to top,var(--accent),rgba(65,45,21,0.25));transition:height 1.2s cubic-bezier(.16,1,.3,1);min-height:2px;transform-origin:bottom}
+    .dash-panel{display:none}
+    .dash-panel.active{display:block}
+    #analyze{padding-top:0}
+    .analyze-wrap{padding-top:120px;padding-bottom:80px}
+    .repo-list{display:flex;flex-direction:column;gap:6px;margin-bottom:24px;max-height:360px;overflow-y:auto;padding-right:4px}
+    .repo-list::-webkit-scrollbar{width:3px}
+    .repo-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .3s ease;font-size:13.5px}
+    .repo-item:hover{border-color:var(--accent);background:var(--card);transform:translateX(4px)}
+    .repo-item.active{border-color:var(--accent);background:var(--card);box-shadow:0 0 0 2px rgba(65,45,21,0.1)}
+    .repo-item .lang{font-size:11px;color:var(--text-muted);padding:2px 8px;background:var(--card);border-radius:4px}
+    .analyze-layout{display:grid;grid-template-columns:1fr 1fr;gap:24px;min-height:480px}
+    .analyze-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;overflow:hidden}
+    .analyze-panel h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .file-tree{font-size:12.5px;line-height:2;font-family:'SF Mono','Fira Code',monospace;color:var(--text-muted);max-height:360px;overflow-y:auto}
+    .file-tree .folder{color:var(--text);font-weight:600}
+    .file-tree .file{cursor:pointer;padding-left:20px;transition:color .3s;display:block}
+    .file-tree .file:hover{color:var(--accent)}
+    .file-tree .indent{padding-left:32px}
+    .file-tree .indent2{padding-left:52px}
+    .code-viewer{background:#1a1a1a;border-radius:10px;padding:16px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;line-height:1.7;color:#e0e0e0;max-height:280px;overflow-y:auto;margin-bottom:12px}
+    .code-viewer .comment{color:#6a9955}
+    .code-viewer .keyword{color:#569cd6}
+    .code-viewer .string{color:#ce9178}
+    .code-viewer .func{color:#dcdcaa}
+    .suggestion-list{display:flex;flex-direction:column;gap:8px}
+    .suggestion-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:12.5px}
+    .suggestion-item .badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase}
+    .badge-pass{background:rgba(45,138,78,0.12);color:#2D8A4E}
+    .badge-warn{background:rgba(212,164,74,0.12);color:#D4A44A}
+    .badge-err{background:rgba(212,74,74,0.12);color:#D44A4A}
+    .score-ring{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;position:relative;flex-shrink:0}
+    .score-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+    .score-ring svg circle{fill:none;stroke-width:4;cx:28;cy:28;r:24}
+    .score-ring .bg{stroke:var(--border)}
+    .score-ring .fg{stroke:var(--accent);stroke-dasharray:150.8;stroke-dashoffset:150.8;transition:stroke-dashoffset 1.5s cubic-bezier(.16,1,.3,1)}
+    .tom-popup{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(31,21,12,0.3);backdrop-filter:blur(8px)}
+    .tom-popup.show{display:flex}
+    .tom-popup-inner{text-align:center;animation:tomBounce .6s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes tomBounce{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+    .tom-popup svg{width:100px;height:100px;filter:drop-shadow(0 8px 32px rgba(65,45,21,0.3))}
+    .tom-popup p{color:var(--card);font-size:16px;font-weight:600;margin-top:16px;letter-spacing:1px}
+    #marketplace{padding-top:0}
+    .market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:24px}
+    .model-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s ease}
+    .model-card:hover{transform:translateY(-8px);box-shadow:0 20px 56px rgba(31,21,12,0.07)}
+    .model-card .model-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .model-card .model-avatar{width:38px;height:38px;border-radius:12px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:var(--card);font-weight:700;font-size:14px}
+    .model-card .model-name{font-size:16px;font-weight:700}
+    .model-card .model-author{font-size:12.5px;color:var(--text-muted)}
+    .model-card .model-desc{font-size:12.5px;color:var(--text-muted);line-height:1.6;margin-bottom:14px}
+    .model-card .model-metrics{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+    .model-card .model-metrics span{font-size:12px;color:var(--text-muted)}
+    .model-card .model-metrics strong{color:var(--text)}
+    .rating-stars{color:#D4A44A;letter-spacing:1.5px;font-size:13px}
+    .model-btn{width:100%;padding:11px;border-radius:12px;border:none;background:var(--primary);color:var(--card);font-weight:600;font-size:13.5px;cursor:pointer;transition:all .35s ease;font-family:var(--font);position:relative;overflow:hidden}
+    .model-btn:hover{background:var(--accent);transform:scale(1.02);box-shadow:0 8px 24px rgba(65,45,21,0.2)}
+    .model-btn .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.2);transform:scale(0);animation:rippleAnim .6s ease-out;pointer-events:none}
+    #account{padding-top:0}
+    .portfolio-header{display:flex;gap:32px;align-items:flex-start;margin-bottom:32px;flex-wrap:wrap}
+    .portfolio-avatar{width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--primary));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:var(--card);flex-shrink:0;box-shadow:0 8px 32px rgba(65,45,21,0.15)}
+    .portfolio-info{flex:1}
+    .portfolio-name{font-family:var(--font-alt);font-size:28px;font-weight:800;margin-bottom:2px}
+    .portfolio-title{color:var(--text-muted);font-size:15px;margin-bottom:8px}
+    .portfolio-meta{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--text-muted)}
+    .portfolio-meta span{display:flex;align-items:center;gap:6px}
+    .share-btn{display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--primary);color:var(--card);border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s ease;font-family:var(--font)}
+    .share-btn:hover{background:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(65,45,21,0.2)}
+    .share-btn.copied{background:#2D8A4E}
+    .portfolio-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .portfolio-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;transition:transform .4s ease,box-shadow .4s ease}
+    .portfolio-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(31,21,12,0.06)}
+    .portfolio-card.full{grid-column:1/-1}
+    .portfolio-card h4{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:12px}
+    .portfolio-card .value{font-size:15px;font-weight:600;line-height:1.6}
+    .portfolio-card .value small{font-weight:400;color:var(--text-muted);font-size:13px}
+    .portfolio-card .sub{font-size:13px;color:var(--text-muted);margin-top:4px}
+    .exp-item{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid rgba(211,200,180,0.3)}
+    .exp-item:last-child{border:none}
+    .exp-icon{width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .exp-item .role{font-weight:600;font-size:14px}
+    .exp-item .org{font-size:13px;color:var(--text-muted)}
+    .exp-item .date{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+    .model-portfolio-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .model-portfolio-item{background:var(--bg);border-radius:12px;padding:14px;text-align:center;border:1px solid transparent;transition:all .3s}
+    .model-portfolio-item:hover{border-color:var(--border);transform:translateY(-2px)}
+    .model-portfolio-item .mp-name{font-weight:600;font-size:13.5px}
+    .model-portfolio-item .mp-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+    #train{padding-top:0}
+    .train-layout{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .train-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px}
+    .train-panel h3{font-size:17px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+    .train-panel h3 .live-dot{width:7px;height:7px;border-radius:50%;background:#2D8A4E;animation:dotPulse 1.5s ease-in-out infinite}
+    #node-visualizer{width:100%;height:340px;border-radius:12px;background:var(--bg);position:relative;overflow:hidden}
+    .terminal{background:#1a1a1a;border-radius:12px;padding:18px;font-family:'SF Mono','Fira Code',monospace;font-size:12.5px;line-height:1.8;height:340px;overflow-y:auto;color:#a0a0a0}
+    .terminal .green{color:#4CAF50}
+    .terminal .yellow{color:#FFC107}
+    .terminal .blue{color:#64B5F6}
+    .terminal .red{color:#EF5350}
+    .terminal .prompt{color:#666}
+    .train-controls{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+    .train-ctrl-btn{padding:9px 22px;border-radius:10px;border:1px solid var(--border);background:var(--bg);font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .35s ease;color:var(--text)}
+    .train-ctrl-btn:hover{border-color:var(--accent);background:var(--card);transform:translateY(-2px)}
+    .train-ctrl-btn.active{background:var(--primary);color:var(--card);border-color:var(--primary)}
+    .train-new-btn{padding:12px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--primary));color:var(--card);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .35s ease;box-shadow:0 4px 16px rgba(65,45,21,0.15)}
+    .train-new-btn:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(65,45,21,0.25)}
+    .epoch-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+    .epoch-stat{text-align:center;padding:14px;background:var(--bg);border-radius:12px}
+    .epoch-stat .val{font-size:22px;font-weight:800}
+    .epoch-stat .lbl{font-size:10.5px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+    .footer{padding:44px 0;border-top:1px solid var(--border);text-align:center;font-size:12.5px;color:var(--text-muted)}
+    @media(max-width:968px){
+      .split-view,.train-layout,.bento-grid,.portfolio-grid,.analyze-layout{grid-template-columns:1fr}
+      .sidebar{transform:translateX(-100%)}
+      .sidebar.open{transform:translateX(0)}
+      .main-content{margin-left:0}
+      .nav-links{display:none}
+      #gridCanvas{left:0}
+      .model-portfolio-list{grid-template-columns:1fr}
+    }
+    @media(max-width:640px){
+      .container{padding:0 20px}
+      .hero-title{font-size:34px}
+      .blog-card{min-width:260px}
+      .contact-glass{padding:28px 20px}
+      .auth-card{padding:28px 20px}
+      .main-content{padding:20px}
+    }
+/* === PROJECTS === */  .project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}  .project-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .4s ease;cursor:pointer;position:relative}  .project-card:hover{transform:translateY(-6px);box-shadow:0 16px 48px rgba(31,21,12,0.07)}  .project-card h3{font-size:17px;font-weight:700;margin-bottom:6px}  .project-card p{font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}  .project-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-bottom:12px}  .project-meta span{display:flex;align-items:center;gap:4px}  .project-status{font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px;text-transform:uppercase;letter-spacing:.5px;display:inline-block}  .status-open{background:rgba(45,138,78,0.12);color:#2D8A4E}  .status-in-progress{background:rgba(212,164,74,0.12);color:#D4A44A}  .status-completed{background:rgba(65,45,21,0.1);color:var(--text-muted)}  /* === MODAL === */  .modal-overlay{position:fixed;inset:0;z-index:10000;background:rgba(31,21,12,0.4);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}  .modal-overlay.show{display:flex}  .modal{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:32px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;animation:modalIn .3s cubic-bezier(.16,1,.3,1)}  @keyframes modalIn{from{transform:scale(.95) translateY(16px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}  .modal h2{font-family:var(--font-alt);font-size:24px;font-weight:800;margin-bottom:4px}  .modal .close-btn{float:right;background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-muted);padding:0 4px;transition:color .3s;line-height:1}  .modal .close-btn:hover{color:var(--text)}  .modal label{display:block;font-size:12.5px;font-weight:600;margin-bottom:4px;margin-top:16px;color:var(--text)}  .modal input,.modal textarea,.modal select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);font-size:14px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .4s;resize:vertical}  .modal input:focus,.modal textarea:focus,.modal select:focus{border-color:var(--accent)}  .modal select{appearance:auto;cursor:pointer}  /* === BIDS === */  .bid-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}  .bid-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:12px;transition:all .3s}  .bid-item:hover{border-color:var(--accent)}  .bid-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:var(--card);font-weight:700;font-size:13px;flex-shrink:0}  .bid-info{flex:1}  .bid-info .name{font-weight:600;font-size:13.5px}  .bid-info .msg{font-size:12px;color:var(--text-muted);margin-top:2px}  .bid-amount{font-weight:800;font-size:18px;color:var(--accent);flex-shrink:0}  .bid-actions{display:flex;gap:6px;flex-shrink:0}  .bid-actions button{padding:6px 14px;border-radius:8px;border:none;font-size:11.5px;font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font)}  .bid-accept{background:#2D8A4E;color:#fff}  .bid-accept:hover{background:#236f3e}  .bid-reject{background:var(--bg);border:1px solid var(--border)!important;color:var(--text-muted)}  .bid-reject:hover{border-color:#D44A4A!important;color:#D44A4A}  .bid-status{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;text-transform:uppercase;letter-spacing:.5px}  .bid-status.accepted{background:rgba(45,138,78,0.12);color:#2D8A4E}  .bid-status.rejected{background:rgba(212,74,74,0.12);color:#D44A4A}  .bid-status.pending{background:rgba(212,164,74,0.12);color:#D4A44A}  /* === CHAT === */  .chat-layout{display:grid;grid-template-columns:300px 1fr;gap:0;background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;min-height:480px}  .chat-sidebar{border-right:1px solid var(--border);overflow-y:auto;background:var(--bg)}  .chat-sidebar h4{padding:18px 16px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border);margin:0}  .chat-list-item{padding:14px 16px;cursor:pointer;border-bottom:1px solid rgba(211,200,180,0.2);transition:all .3s;display:flex;align-items:center;gap:10px}  .chat-list-item:hover,.chat-list-item.active{background:var(--card)}  .chat-list-item .chat-name{font-weight:600;font-size:13.5px}  .chat-list-item .chat-preview{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}  .chat-list-item .chat-time{font-size:10.5px;color:var(--text-muted);margin-left:auto;flex-shrink:0}  .chat-main{display:flex;flex-direction:column;height:480px}  .chat-header{padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:15px;display:flex;align-items:center;gap:10px}  .chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px}  .chat-msg{max-width:75%;padding:10px 16px;border-radius:16px;font-size:13.5px;line-height:1.5;word-wrap:break-word}  .chat-msg.sent{align-self:flex-end;background:var(--accent);color:var(--card);border-bottom-right-radius:4px}  .chat-msg.received{align-self:flex-start;background:var(--bg);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}  .chat-msg .time{font-size:10px;opacity:.6;margin-top:4px;display:block}  .chat-input-wrap{display:flex;gap:8px;padding:14px 16px;border-top:1px solid var(--border);background:var(--bg)}  .chat-input-wrap input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);font-size:13.5px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .3s}  .chat-input-wrap input:focus{border-color:var(--accent)}  .chat-send{padding:10px 20px;background:var(--accent);color:var(--card);border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font)}  .chat-send:hover{background:var(--primary)}  .chat-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px;flex-direction:column;gap:8px}  .chat-empty .icon{font-size:48px;opacity:.3}  /* === TOAST === */  .toast{position:fixed;bottom:32px;right:32px;z-index:99999;padding:14px 24px;border-radius:12px;font-size:13.5px;font-weight:600;color:#fff;box-shadow:0 8px 32px rgba(0,0,0,0.15);transform:translateY(120px);opacity:0;transition:all .5s cubic-bezier(.16,1,.3,1);pointer-events:none}  .toast.show{transform:translateY(0);opacity:1;pointer-events:auto}  .toast.success{background:#2D8A4E}  .toast.error{background:#D44A4A}  .toast.info{background:var(--accent)}  /* === EMPTY STATE === */  .empty-state{text-align:center;padding:80px 20px;color:var(--text-muted)}  .empty-state .icon{font-size:64px;opacity:.2;margin-bottom:16px}  .empty-state h3{font-size:20px;color:var(--text);margin-bottom:6px}  .empty-state p{font-size:14px}  /* === USER MENU === */  #userMenu button:hover{background:var(--card)}</style>
+</head>
+<body>
+
+<div id="preloader"><div class="loader-ring"></div><div class="loader-text">Loading</div></div>
+<div id="scrollProgress"></div>
+
+<nav class="main-nav" id="mainNav">
+  <div class="nav-logo" onclick="showScreen('landing')">
+    <div class="logo-icon"><svg viewBox="0 0 36 36" fill="none"><circle cx="12" cy="16" r="3" fill="#412D15"/><circle cx="24" cy="16" r="3" fill="#412D15"/><path d="M10 24 Q18 32 26 24" stroke="#412D15" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M18 6 L18 12" stroke="#412D15" stroke-width="2.5" stroke-linecap="round"/><path d="M6 18 L2 14" stroke="#412D15" stroke-width="2" stroke-linecap="round"/><path d="M30 18 L34 14" stroke="#412D15" stroke-width="2" stroke-linecap="round"/><path d="M8 18 Q18 22 28 18" stroke="#412D15" stroke-width="1.5" stroke-dasharray="2 2" fill="none"/><circle cx="18" cy="28" r="2" fill="#1F150C"/></svg><div class="logo-pulse"></div></div>
+    <div class="logo-text"><span>TOM</span></div>
+  </div>
+  <div class="nav-links">
+    <button class="nav-link active" data-screen="landing">Home</button>
+    <button class="nav-link" data-screen="home">Dashboard</button>
+    <button class="nav-link" data-screen="analyze">Analyze</button>
+    <button class="nav-link" data-screen="marketplace">Marketplace</button>
+    <button class="nav-link" data-screen="projects">Projects</button>
+    <button class="nav-link" data-screen="train">Train</button>
+    <button class="nav-link" data-screen="messages">Messages</button>
+    <button class="nav-link" data-screen="account">Account</button>
+  </div>
+  <button class="nav-cta" onclick="showScreen('auth')">Sign In</button>
+</nav>
+
+<!-- ===== LANDING ===== -->
+<section class="screen active" id="landing">
+  <div class="hero">
+    <canvas id="particle-canvas"></canvas>
+    <div class="container hero-content">
+      <div class="hero-badge"><span class="hero-badge-dot"></span> v2.0 — Now Available</div>
+      <h1 class="hero-title"><span class="line"><span>AI-Powered GitHub</span></span><span class="line"><span>Intelligence &amp;</span></span><span class="line"><span class="highlight">Developer Marketplace</span></span></h1>
+      <p class="hero-desc">TOM brings together AI-driven code analysis, automated documentation, and a peer-to-peer model marketplace — empowering developers to build smarter, faster.</p>
+      <div class="hero-actions"><button class="magnet-btn magnet-btn-primary" data-power="4"><span>Get Started</span></button><button class="magnet-btn magnet-btn-secondary" data-power="3"><span>Explore Marketplace</span></button></div>
+    </div>
+    <div class="hero-scroll-indicator"><span>Scroll</span><div class="scroll-line"></div></div>
+  </div>
+  <div class="section"><div class="container">
+    <div class="reveal"><div class="section-label">Core Modules</div></div>
+    <div class="reveal"><h2 class="section-title">Everything you need to ship<br>exceptional code.</h2></div>
+    <div class="reveal"><p class="section-desc">From intelligent retrieval to automated documentation, TOM equips your workflow with cutting-edge AI tooling.</p></div>
+    <div class="features-grid" id="featuresGrid">
+      <div class="feature-card reveal" data-tilt><div class="feature-icon">🧠</div><h3>RAG Integration</h3><p>Semantic code retrieval across your entire repository. Ask questions in natural language and get precise answers with source context.</p><div class="feature-stat">→ 99.2% relevance accuracy</div></div>
+      <div class="feature-card reveal" data-tilt><div class="feature-icon">📄</div><h3>Auto Documentation</h3><p>Generate beautiful, up-to-date Markdown and Word docs from your codebase. Keeps your wiki in sync with every commit.</p><div class="feature-stat">→ 85% reduction in doc debt</div></div>
+      <div class="feature-card reveal" data-tilt><div class="feature-icon">📊</div><h3>Code-Quality Scorecards</h3><p>Real-time metrics for maintainability, security, and performance. Catch regressions before they hit production.</p><div class="feature-stat">→ 40% fewer bugs shipped</div></div>
+    </div>
+  </div></div>
+  <div class="blog-section"><div class="container">
+    <div class="reveal-left"><div class="section-label">Insights &amp; Guides</div></div>
+    <div class="reveal-left"><h2 class="section-title">From the TOM team.</h2></div>
+    <div class="reveal-left"><p class="section-desc">Deep dives into AI-assisted development, RAG patterns, and the future of code intelligence.</p></div>
+  </div>
+  <div class="blog-track-wrap reveal-scale" id="blogWrap">
+    <div class="blog-track" id="blogTrack">
+      <div class="blog-card"><div class="blog-card-tag">AI Engineering</div><h4>Scaling RAG for Monorepos</h4><p>How we achieved sub-200ms retrieval across 10M+ lines of code using hybrid vector/keyword search.</p><div class="blog-card-author"><div class="blog-card-avatar">AK</div><span>Aiko Kurosawa</span></div></div>
+      <div class="blog-card"><div class="blog-card-tag">Developer Experience</div><h4>The Scorecard Revolution</h4><p>Why static analysis alone isn't enough — combining LLM-based reviews with traditional linters for deeper insight.</p><div class="blog-card-author"><div class="blog-card-avatar">MC</div><span>Marcus Chen</span></div></div>
+      <div class="blog-card"><div class="blog-card-tag">Open Source</div><h4>Fine-Tuning on GitHub Data</h4><p>A practical guide to training domain-specific models on public repository corpora with TOM's pipeline.</p><div class="blog-card-author"><div class="blog-card-avatar">LR</div><span>Leila Rahimi</span></div></div>
+      <div class="blog-card"><div class="blog-card-tag">Security</div><h4>Dependency Anti-Patterns</h4><p>Using TOM's vulnerability graph to detect supply-chain risks before they reach your merge queue.</p><div class="blog-card-author"><div class="blog-card-avatar">JO</div><span>Jamie O'Brien</span></div></div>
+      <div class="blog-card"><div class="blog-card-tag">Performance</div><h4>Vector Embedding at Scale</h4><p>Benchmarking chunking strategies and embedding models for optimal retrieval accuracy in CI pipelines.</p><div class="blog-card-author"><div class="blog-card-avatar">SV</div><span>Samira Voss</span></div></div>
+    </div>
+  </div></div>
+  <div class="contributors-section"><div class="container">
+    <div class="reveal-right"><div class="section-label">Contributors</div></div>
+    <div class="reveal-right"><h2 class="section-title">Built by the community.</h2></div>
+    <div class="reveal-right"><p class="section-desc">Meet the developers, researchers, and open-source champions shaping TOM.</p></div>
+    <div class="bubble-grid reveal-scale" id="bubbleGrid"></div>
+  </div></div>
+  <div class="faq-section"><div class="container">
+    <div class="reveal"><div class="section-label">FAQ</div></div>
+    <div class="reveal"><h2 class="section-title">Questions? We've got answers.</h2></div>
+    <div class="faq-grid reveal">
+      <div class="faq-item"><div class="faq-q"><span>What is TOM?</span><span class="icon">+</span></div><div class="faq-a">TOM (Train Optimal Model) is an AI-powered GitHub intelligence platform and developer-recruiter marketplace. It combines RAG-based code retrieval, automated documentation, code-quality scorecards, and a peer-to-peer marketplace for custom AI models.</div></div>
+      <div class="faq-item"><div class="faq-q"><span>How does the marketplace work?</span><span class="icon">+</span></div><div class="faq-a">Developers can train and list custom domain-specific models on TOM's Marketplace. Buyers can browse, test, and deploy models directly into their CI/CD pipeline. All transactions are handled via smart contracts with built-in verification.</div></div>
+      <div class="faq-item"><div class="faq-q"><span>Is TOM open source?</span><span class="icon">+</span></div><div class="faq-a">The core TOM engine is open source (MIT license). The Marketplace, advanced analytics, and premium training pipelines are available under a commercial license with a free tier for individual developers.</div></div>
+      <div class="faq-item"><div class="faq-q"><span>What languages are supported?</span><span class="icon">+</span></div><div class="faq-a">TOM supports 20+ programming languages natively, including Python, JavaScript, TypeScript, Rust, Go, Java, C++, Ruby, and more. Language-specific analyzers ensure deep semantic understanding for each ecosystem.</div></div>
+    </div>
+    <div class="contact-glass reveal-scale">
+      <h3>Get in touch</h3>
+      <p>Have a custom use case or want to contribute? We'd love to hear from you.</p>
+      <div class="input-group"><input type="text" id="contactName"/><label>Your name</label></div>
+      <div class="input-group"><input type="email" id="contactEmail"/><label>Email address</label></div>
+      <div class="input-group"><textarea rows="4" id="contactMsg"></textarea><label>Message</label></div>
+      <button class="magnet-btn magnet-btn-primary" style="width:100%"><span>Send Message</span></button>
+    </div>
+  </div></div>
+  <footer class="footer"><div class="container">© 2026 TOM — Train Optimal Model</div></footer>
+</section>
+
+<!-- ===== AUTH ===== -->
+<section class="screen" id="auth">
+  <div class="auth-card">
+    <div style="text-align:center;margin-bottom:6px;font-size:26px;font-weight:800;font-family:var(--font-alt);">Welcome</div>
+    <p style="text-align:center;color:var(--text-muted);margin-bottom:22px;font-size:13.5px;">Sign in to continue to TOM</p>
+    <div class="auth-tabs"><button class="auth-tab active" data-tab="oauth">GitHub OAuth</button><button class="auth-tab" data-tab="google">Google</button></div>
+    <div class="auth-form active" id="formOAuth">
+      <button class="auth-btn" onclick="signInAs('u1')"><svg width="18" height="18" viewBox="0 0 16 16"><path fill="#1F150C" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> Continue with GitHub</button>
+      <div class="auth-divider"><span>or</span></div><button class="auth-btn auth-btn-primary" onclick="signInAs('u1')">Sign in with Magic Link</button>
+    </div>
+    <div class="auth-form" id="formGoogle">
+      <button class="auth-btn" onclick="signInAs('u1')"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google</button>
+      <div class="auth-divider"><span>or</span></div><button class="auth-btn auth-btn-primary" onclick="signInAs('u1')">Sign in with Magic Link</button>
+    </div>
+    <p style="text-align:center;font-size:11.5px;color:var(--text-muted);margin-top:18px;">By continuing, you agree to TOM's Terms of Service.</p>
+  </div>
+</section>
+
+<!-- ===== HOME / DASHBOARD ===== -->
+<section class="screen" id="home">
+  <canvas id="gridCanvas"></canvas>
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">Navigation</div>
+      <button class="sidebar-item active" data-dash="overview"><span>📊</span> Overview</button>
+      <button class="sidebar-item" data-dash="repos"><span>📁</span> Repositories</button>
+      <button class="sidebar-item" data-dash="prs"><span>🔄</span> Pull Requests</button>
+      <button class="sidebar-item" data-dash="issues"><span>🐛</span> Issues</button>
+      <div class="sidebar-section">Analytics</div>
+      <button class="sidebar-item" data-dash="scorecards"><span>📈</span> Quality Scorecards</button>
+      <button class="sidebar-item" data-dash="security"><span>🔐</span> Security Alerts</button>
+      <button class="sidebar-item" data-dash="streak"><span>⚡</span> Streak Risk</button>
+      <div class="sidebar-section">Team</div>
+      <button class="sidebar-item" data-dash="contributors"><span>👥</span> Contributors</button>
+      <button class="sidebar-item" data-dash="leaderboard"><span>🏆</span> Leaderboard</button>
+    </aside>
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="main-content" id="mainContent">
+      <div id="dashOverview" class="dash-panel active">
+        <h1>Dashboard</h1><p class="greeting">Welcome back, Developer. Here's your project overview.</p>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="label">Repositories</div><div class="value" id="statRepos">24</div><div class="change">+3 this week</div></div>
+          <div class="stat-card"><div class="label">Code Quality</div><div class="value" style="color:#2D8A4E" id="statQuality">94.2</div><div class="change">↑ 2.1 pts</div></div>
+          <div class="stat-card"><div class="label">Active Streak</div><div class="value" id="statStreak">37</div><div class="change">days</div></div>
+          <div class="stat-card"><div class="label">Security Score</div><div class="value" style="color:#2D8A4E">A+</div><div class="change">No critical issues</div></div>
+        </div>
+        <div class="chart-placeholder"><div class="chart-bars" id="chartBars"></div></div>
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr">
+          <div class="stat-card"><div class="label">Streak Risk Alert</div><div class="value" style="font-size:17px;font-weight:600;">⚠️ Low — 2 inactive contributors</div><div class="change">Review team activity</div></div>
+          <div class="stat-card"><div class="label">Live Metrics</div><div class="value" style="font-size:17px;font-weight:600;">⚡ 1,247 commits this month</div><div class="change">32 PRs open</div></div>
+        </div>
+      </div>
+      <div id="dashRepos" class="dash-panel">
+        <h1>Repositories</h1><p class="greeting">Manage your connected repositories.</p>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="label">Total</div><div class="value">24</div><div class="change">Across 6 organizations</div></div>
+          <div class="stat-card"><div class="label">Public</div><div class="value">14</div><div class="change">Open source</div></div>
+          <div class="stat-card"><div class="label">Private</div><div class="value">10</div><div class="change">Internal projects</div></div>
+          <div class="stat-card"><div class="label">Active Today</div><div class="value">7</div><div class="change">With recent commits</div></div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;"><span style="font-weight:600;">Recent Repositories</span><span style="font-size:12px;color:var(--text-muted);">Last updated 2m ago</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:13.5px;"><span>🔭 tom-core</span><span style="color:var(--text-muted);">Python · Updated 2h ago</span></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:13.5px;"><span>🧠 neural-rag</span><span style="color:var(--text-muted);">TypeScript · Updated 5h ago</span></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:13.5px;"><span>📊 scorecard-api</span><span style="color:var(--text-muted);">Rust · Updated 1d ago</span></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:13.5px;"><span>🌐 marketplace-ui</span><span style="color:var(--text-muted);">React · Updated 2d ago</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="dashPrs" class="dash-panel">
+        <h1>Pull Requests</h1><p class="greeting">Review and manage open pull requests across your repos.</p>
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="stat-card"><div class="label">Open</div><div class="value">32</div><div class="change">Needs review</div></div>
+          <div class="stat-card"><div class="label">Approved</div><div class="value">8</div><div class="change">Ready to merge</div></div>
+          <div class="stat-card"><div class="label">Draft</div><div class="value">6</div><div class="change">Work in progress</div></div>
+        </div>
+      </div>
+      <div id="dashIssues" class="dash-panel">
+        <h1>Issues</h1><p class="greeting">Track and triage issues across your workflow.</p>
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="stat-card"><div class="label">Open</div><div class="value">47</div><div class="change">−12 this week</div></div>
+          <div class="stat-card"><div class="label">Bug</div><div class="value">14</div><div class="change" style="color:#D44A4A;">3 critical</div></div>
+          <div class="stat-card"><div class="label">Avg Resolution</div><div class="value" style="font-size:24px;">3.2d</div><div class="change">↓ 12% faster</div></div>
+        </div>
+      </div>
+      <div id="dashScorecards" class="dash-panel">
+        <h1>Quality Scorecards</h1><p class="greeting">AI-driven code quality metrics for every repository.</p>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div style="background:var(--bg);padding:18px;border-radius:12px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Maintainability</div><div style="font-size:28px;font-weight:800;">86</div><div style="font-size:12px;color:#2D8A4E;">↑ 4 pts</div></div>
+            <div style="background:var(--bg);padding:18px;border-radius:12px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Reliability</div><div style="font-size:28px;font-weight:800;">92</div><div style="font-size:12px;color:#2D8A4E;">↑ 2 pts</div></div>
+            <div style="background:var(--bg);padding:18px;border-radius:12px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Security</div><div style="font-size:28px;font-weight:800;">97</div><div style="font-size:12px;color:#2D8A4E;">No issues</div></div>
+            <div style="background:var(--bg);padding:18px;border-radius:12px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Performance</div><div style="font-size:28px;font-weight:800;">78</div><div style="font-size:12px;color:#D4A44A;">Needs optimization</div></div>
+          </div>
+        </div>
+      </div>
+      <div id="dashSecurity" class="dash-panel">
+        <h1>Security Alerts</h1><p class="greeting">Real-time vulnerability monitoring and supply-chain risk detection.</p>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:rgba(45,138,78,0.08);border-radius:12px;margin-bottom:10px;"><span style="font-size:20px;">🟢</span><div><div style="font-weight:600;font-size:14px;">No critical vulnerabilities</div><div style="font-size:12px;color:var(--text-muted);">7 low-severity advisories — last scan 4m ago</div></div></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:12px;"><span style="font-size:20px;">🟡</span><div><div style="font-weight:600;font-size:14px;">2 moderate advisories in dependencies</div><div style="font-size:12px;color:var(--text-muted);">lodash, axios — patch available</div></div></div>
+        </div>
+      </div>
+      <div id="dashStreak" class="dash-panel">
+        <h1>Streak Risk</h1><p class="greeting">Monitor contributor activity and prevent burnout.</p>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:var(--bg);padding:16px;border-radius:12px;text-align:center;"><div style="font-size:32px;font-weight:800;">37</div><div style="font-size:12px;color:var(--text-muted);">Day streak</div></div>
+            <div style="background:var(--bg);padding:16px;border-radius:12px;text-align:center;"><div style="font-size:32px;font-weight:800;">2</div><div style="font-size:12px;color:#D44A4A;">At-risk contributors</div></div>
+            <div style="background:var(--bg);padding:16px;border-radius:12px;text-align:center;"><div style="font-size:32px;font-weight:800;">92%</div><div style="font-size:12px;color:var(--text-muted);">Team activity rate</div></div>
+            <div style="background:var(--bg);padding:16px;border-radius:12px;text-align:center;"><div style="font-size:32px;font-weight:800;">14</div><div style="font-size:12px;color:var(--text-muted);">Days since last inactive</div></div>
+          </div>
+        </div>
+      </div>
+      <div id="dashContributors" class="dash-panel">
+        <h1>Contributors</h1><p class="greeting">Recognize and manage your open-source community. <strong id="ghContrib" style="font-size:0;">0</strong></p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);padding:12px 18px;border-radius:12px;flex:1 1 200px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:var(--card);font-weight:700;font-size:13px;">AK</div><div><div style="font-weight:600;font-size:13.5px;">Aiko K.</div><div style="font-size:11px;color:var(--text-muted);">247 commits</div></div></div>
+          <div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);padding:12px 18px;border-radius:12px;flex:1 1 200px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:var(--card);font-weight:700;font-size:13px;">MC</div><div><div style="font-weight:600;font-size:13.5px;">Marcus C.</div><div style="font-size:11px;color:var(--text-muted);">189 commits</div></div></div>
+          <div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);padding:12px 18px;border-radius:12px;flex:1 1 200px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:var(--card);font-weight:700;font-size:13px;">LR</div><div><div style="font-weight:600;font-size:13.5px;">Leila R.</div><div style="font-size:11px;color:var(--text-muted);">156 commits</div></div></div>
+          <div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);padding:12px 18px;border-radius:12px;flex:1 1 200px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:var(--card);font-weight:700;font-size:13px;">JO</div><div><div style="font-weight:600;font-size:13.5px;">Jamie O.</div><div style="font-size:11px;color:var(--text-muted);">132 commits</div></div></div>
+        </div>
+      </div>
+      <div id="dashLeaderboard" class="dash-panel">
+        <h1>Leaderboard</h1><p class="greeting">Top contributors ranked by impact score this month.</p>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
+          <div style="display:grid;grid-template-columns:60px 1fr 120px 100px;gap:8px;font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:10px;"><span>Rank</span><span>Name</span><span>Score</span><span>PRs</span></div>
+          <div style="display:grid;grid-template-columns:60px 1fr 120px 100px;gap:8px;padding:10px 0;font-size:13.5px;border-bottom:1px solid rgba(211,200,180,0.3);"><span style="font-weight:800;">🥇 1</span><span>Aiko K.</span><span style="font-weight:600;">2,847</span><span>47</span></div>
+          <div style="display:grid;grid-template-columns:60px 1fr 120px 100px;gap:8px;padding:10px 0;font-size:13.5px;border-bottom:1px solid rgba(211,200,180,0.3);"><span style="font-weight:800;">🥈 2</span><span>Marcus C.</span><span style="font-weight:600;">2,341</span><span>38</span></div>
+          <div style="display:grid;grid-template-columns:60px 1fr 120px 100px;gap:8px;padding:10px 0;font-size:13.5px;border-bottom:1px solid rgba(211,200,180,0.3);"><span style="font-weight:800;">🥉 3</span><span>Leila R.</span><span style="font-weight:600;">1,892</span><span>31</span></div>
+          <div style="display:grid;grid-template-columns:60px 1fr 120px 100px;gap:8px;padding:10px 0;font-size:13.5px;"><span>4</span><span>Jamie O.</span><span style="font-weight:600;">1,564</span><span>25</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ANALYZE ===== -->
+<section class="screen" id="analyze">
+  <div class="container analyze-wrap">
+    <div class="reveal"><div class="section-label">Repository Analysis</div></div>
+    <div class="reveal"><h2 class="section-title" style="margin-bottom:8px;">Inspect, analyze, optimize.</h2></div>
+    <div class="reveal"><p class="section-desc" style="margin-bottom:24px;">Select a repository below to run a full AI-powered analysis.</p></div>
+
+    <div class="reveal" style="margin-bottom:24px;">
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:10px;">📁 Your Repositories</h3>
+      <div class="repo-list" id="repoList">
+        <div class="repo-item" data-repo="tom-core"><span>🔭 <strong>tom-core</strong></span><span class="lang">Python</span></div>
+        <div class="repo-item" data-repo="neural-rag"><span>🧠 <strong>neural-rag</strong></span><span class="lang">TypeScript</span></div>
+        <div class="repo-item" data-repo="scorecard-api"><span>📊 <strong>scorecard-api</strong></span><span class="lang">Rust</span></div>
+        <div class="repo-item" data-repo="marketplace-ui"><span>🌐 <strong>marketplace-ui</strong></span><span class="lang">React</span></div>
+        <div class="repo-item" data-repo="cli-tools"><span>⚙️ <strong>cli-tools</strong></span><span class="lang">Go</span></div>
+      </div>
+    </div>
+
+    <div class="analyze-layout" id="analyzeLayout">
+      <div class="analyze-panel reveal-left">
+        <h3>📂 <span id="analyzeRepoTitle">tom-core</span> <span id="analyzingBadge" style="font-size:11px;background:rgba(65,45,21,0.1);padding:2px 8px;border-radius:4px;font-weight:400;">ready</span></h3>
+        <div class="file-tree" id="fileTree">
+          <div class="folder">📁 tom-core/</div>
+          <div class="file indent" data-file="main.py">📄 main.py</div>
+          <div class="file indent" data-file="utils.py">📄 utils.py</div>
+          <div class="indent folder">📁 src/</div>
+          <div class="file indent2" data-file="analyzer.py">📄 analyzer.py</div>
+          <div class="file indent2" data-file="rag.py">📄 rag.py</div>
+          <div class="indent folder">📁 tests/</div>
+          <div class="file indent2" data-file="test_main.py">📄 test_main.py</div>
+          <div class="file indent" data-file="config.json">📄 config.json</div>
+          <div class="file indent" data-file="README.md">📄 README.md</div>
+        </div>
+      </div>
+      <div class="analyze-panel reveal-right" id="codePanel">
+        <h3>📝 Code Review <span id="codeScore" style="margin-left:auto;font-size:13px;font-weight:600;color:#2D8A4E;">Score: 87</span></h3>
+        <div class="code-viewer" id="codeViewer">
+          <span class="keyword">import</span> asyncio<br>
+          <span class="keyword">from</span> typing <span class="keyword">import</span> List, Optional<br>
+          <br>
+          <span class="comment"># TOM Core Analyzer - Entry Point</span><br>
+          <br>
+          <span class="keyword">class</span> <span class="func">RepoAnalyzer</span>:<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">def</span> <span class="func">__init__</span>(self, repo_path: <span class="keyword">str</span>):<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.path = repo_path<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.results = {}<br>
+          <br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">async def</span> <span class="func">analyze</span>(self):<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"""Run full analysis pipeline"""</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tasks = [<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.chunk_code(),<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.index_vectors(),<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.scan_security()<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;results = <span class="keyword">await</span> asyncio.gather(*tasks)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> results
+        </div>
+        <h3 style="font-size:13px;margin-bottom:10px;">💡 Suggestions</h3>
+        <div class="suggestion-list" id="suggestionList">
+          <div class="suggestion-item"><span class="badge badge-pass">PASS</span> Type hints present on all functions</div>
+          <div class="suggestion-item"><span class="badge badge-warn">WARN</span> Line 24: Function `chunk_code` exceeds 50 lines</div>
+          <div class="suggestion-item"><span class="badge badge-err">ERR</span> Line 42: Hardcoded API key detected — use env var</div>
+          <div class="suggestion-item"><span class="badge badge-pass">PASS</span> Async implementation uses proper patterns</div>
+          <div class="suggestion-item"><span class="badge badge-warn">WARN</span> Consider adding timeout to `scan_security` call</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOM Logo Popup -->
+  <div class="tom-popup" id="tomPopup">
+    <div class="tom-popup-inner">
+      <svg viewBox="0 0 36 36" fill="none"><circle cx="12" cy="16" r="3" fill="#F0EBE1"/><circle cx="24" cy="16" r="3" fill="#F0EBE1"/><path d="M10 24 Q18 32 26 24" stroke="#F0EBE1" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M18 6 L18 12" stroke="#F0EBE1" stroke-width="2.5" stroke-linecap="round"/><path d="M6 18 L2 14" stroke="#F0EBE1" stroke-width="2" stroke-linecap="round"/><path d="M30 18 L34 14" stroke="#F0EBE1" stroke-width="2" stroke-linecap="round"/><path d="M8 18 Q18 22 28 18" stroke="#F0EBE1" stroke-width="1.5" stroke-dasharray="2 2" fill="none"/><circle cx="18" cy="28" r="2" fill="#F0EBE1"/></svg>
+      <p>TOM is analyzing your repository...</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== MARKETPLACE ===== -->
+<section class="screen" id="marketplace">
+  <div class="container" style="padding-top:120px;padding-bottom:80px;">
+    <div class="reveal"><div class="section-label">Marketplace</div></div>
+    <div class="reveal"><h2 class="section-title" style="margin-bottom:6px;">Discover & deploy AI models.</h2></div>
+    <div class="reveal"><p class="section-desc" style="margin-bottom:40px;">Peer-to-peer models trained by the community for every domain.</p></div>
+    <div class="market-grid">
+      <div class="model-card reveal-scale"><div class="model-header"><div class="model-avatar">CT</div><div><div class="model-name">CodeBERT-Fine</div><div class="model-author">by @cortex_lab</div></div></div><div class="model-desc">Fine-tuned CodeBERT for Python repository understanding. Optimized for docstring generation and code completion.</div><div class="model-metrics"><span><strong>4.8</strong> <span class="rating-stars">★★★★★</span></span><span>⚡ 2.4k deploys</span></div><button class="model-btn">Buy / Deploy Model</button></div>
+      <div class="model-card reveal-scale"><div class="model-header"><div class="model-avatar">RN</div><div><div class="model-name">Rust Analyzer Pro</div><div class="model-author">by @rustic_ai</div></div></div><div class="model-desc">Specialized Rust code analyzer with unsafe-block detection, memory safety verification, and idiomatic refactoring suggestions.</div><div class="model-metrics"><span><strong>4.6</strong> <span class="rating-stars">★★★★☆</span></span><span>⚡ 1.8k deploys</span></div><button class="model-btn">Buy / Deploy Model</button></div>
+      <div class="model-card reveal-scale"><div class="model-header"><div class="model-avatar">TD</div><div><div class="model-name">TypeScript DocGen</div><div class="model-author">by @type_devs</div></div></div><div class="model-desc">Automatically generates JSDoc-compliant documentation for TypeScript codebases. Supports generics, decorators, and complex types.</div><div class="model-metrics"><span><strong>4.9</strong> <span class="rating-stars">★★★★★</span></span><span>⚡ 3.1k deploys</span></div><button class="model-btn">Buy / Deploy Model</button></div>
+      <div class="model-card reveal-scale"><div class="model-header"><div class="model-avatar">ML</div><div><div class="model-name">SQL Optimizer</div><div class="model-author">by @data_forge</div></div></div><div class="model-desc">Transforms slow SQL queries into efficient execution plans using learned cost models. Supports PostgreSQL, MySQL, and BigQuery.</div><div class="model-metrics"><span><strong>4.7</strong> <span class="rating-stars">★★★★★</span></span><span>⚡ 5.6k deploys</span></div><button class="model-btn">Buy / Deploy Model</button></div>
+      <div class="model-card reveal-scale"><div class="model-header"><div class="model-avatar">SN</div><div><div class="model-name">Security Sentinel</div><div class="model-author">by @sec_labs</div></div></div><div class="model-desc">Real-time vulnerability detection using graph-based dependency analysis and CVE matching with zero-day heuristic scoring.</div><div class="model-metrics"><span><strong>4.5</strong> <span class="rating-stars">★★★★☆</span></span><span>⚡ 1.2k deploys</span></div><button class="model-btn">Buy / Deploy Model</button></div>
+      <div class="model-card reveal-scale"><div class="model-header"><div class="model-avatar">AI</div><div><div class="model-name">Multi-Lang Embedder</div><div class="model-author">by @tensor_brew</div></div></div><div class="model-desc">Cross-lingual code embedding model supporting 20+ languages. Ideal for semantic search, clone detection, and API matching.</div><div class="model-metrics"><span><strong>4.8</strong> <span class="rating-stars">★★★★★</span></span><span>⚡ 4.0k deploys</span></div><button class="model-btn">Buy / Deploy Model</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PROJECTS ===== -->
+<section class="screen" id="projects">
+  <div class="container" style="padding-top:120px;padding-bottom:80px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:32px;">
+      <div>
+        <div class="section-label">Projects</div>
+        <h2 class="section-title" style="margin-bottom:6px;">Post or bid on projects.</h2>
+        <p class="section-desc" style="margin-bottom:0;">Browse available projects or upload your own for developers to bid on.</p>
+      </div>
+      <button class="nav-cta" onclick="showUploadForm()">+ Upload Project</button>
+    </div>
+    <div class="project-grid" id="projectGrid"></div>
+  </div>
+</section>
+
+<!-- ===== MESSAGES ===== -->
+<section class="screen" id="messages">
+  <div class="container" style="padding-top:120px;padding-bottom:80px;">
+    <div class="section-label">Messages</div>
+    <h2 class="section-title" style="margin-bottom:6px;">Direct conversations.</h2>
+    <p class="section-desc" style="margin-bottom:28px;">Chat with project owners and collaborators.</p>
+    <div class="chat-layout">
+      <div class="chat-sidebar" id="chatList"></div>
+      <div class="chat-main" id="chatMain">
+        <div class="chat-empty"><div class="icon">💬</div><div>Select a conversation to start chatting</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ACCOUNT ===== -->
+<section class="screen" id="account">
+  <div class="container" style="padding-top:120px;padding-bottom:80px;">
+    <div class="reveal"><div class="section-label">Portfolio</div></div>
+    <div class="reveal" style="margin-bottom:24px;">
+      <div class="portfolio-header">
+        <div class="portfolio-avatar">AK</div>
+        <div class="portfolio-info">
+          <div class="portfolio-name">Alex Karmazin</div>
+          <div class="portfolio-title">Senior AI Engineer &amp; Full-Stack Developer</div>
+          <div class="portfolio-meta">
+            <span>📍 San Francisco, CA</span>
+            <span>📧 alex.karmazin@tom.dev</span>
+            <span>📞 +1 (415) 555-0182</span>
+            <span>🔗 github.com/alexk</span>
+            <span>🌐 alexk.dev</span>
+          </div>
+        </div>
+        <button class="share-btn" id="shareBtn">📋 Share Portfolio</button>
+      </div>
+    </div>
+    <div class="portfolio-grid">
+      <div class="portfolio-card reveal">
+        <h4>💼 Experience</h4>
+        <div class="exp-item"><div class="exp-icon">🏢</div><div><div class="role">Senior AI Engineer</div><div class="org">TOM — Train Optimal Model</div><div class="date">2024 — Present · 2 yrs</div></div></div>
+        <div class="exp-item"><div class="exp-icon">🏢</div><div><div class="role">ML Infrastructure Lead</div><div class="org">DataForge Inc.</div><div class="date">2021 — 2024 · 3 yrs</div></div></div>
+        <div class="exp-item"><div class="exp-icon">🏢</div><div><div class="role">Software Engineer</div><div class="org">Cortex Labs</div><div class="date">2019 — 2021 · 2 yrs</div></div></div>
+      </div>
+      <div class="portfolio-card reveal">
+        <h4>🎓 Education</h4>
+        <div class="exp-item"><div class="exp-icon">🎓</div><div><div class="role">M.S. Computer Science</div><div class="org">Stanford University</div><div class="date">2017 — 2019 · GPA 3.9</div></div></div>
+        <div class="exp-item"><div class="exp-icon">🎓</div><div><div class="role">B.S. Software Engineering</div><div class="org">UC Berkeley</div><div class="date">2013 — 2017 · Cum Laude</div></div></div>
+        <div class="exp-item"><div class="exp-icon">📜</div><div><div class="role">Deep Learning Specialization</div><div class="org">deeplearning.ai / Coursera</div><div class="date">2020</div></div></div>
+      </div>
+      <div class="portfolio-card reveal">
+        <h4>🤖 Trained Models</h4>
+        <div class="model-portfolio-list">
+          <div class="model-portfolio-item"><div class="mp-name">CodeBERT-Fine</div><div class="mp-meta">Python · 2.4k deploys</div></div>
+          <div class="model-portfolio-item"><div class="mp-name">SQL Optimizer</div><div class="mp-meta">SQL · 5.6k deploys</div></div>
+          <div class="model-portfolio-item"><div class="mp-name">DocGen TS</div><div class="mp-meta">TypeScript · 1.8k deploys</div></div>
+          <div class="model-portfolio-item"><div class="mp-name">Security Sentinel</div><div class="mp-meta">Multi-lang · 1.2k deploys</div></div>
+        </div>
+      </div>
+      <div class="portfolio-card reveal">
+        <h4>📊 GitHub Stats</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--bg);padding:14px;border-radius:12px;text-align:center;"><div style="font-size:24px;font-weight:800;" id="pfContrib">0</div><div style="font-size:11px;color:var(--text-muted);">Contributions</div></div>
+          <div style="background:var(--bg);padding:14px;border-radius:12px;text-align:center;"><div style="font-size:24px;font-weight:800;">128</div><div style="font-size:11px;color:var(--text-muted);">Repos</div></div>
+          <div style="background:var(--bg);padding:14px;border-radius:12px;text-align:center;"><div style="font-size:24px;font-weight:800;">3.2k</div><div style="font-size:11px;color:var(--text-muted);">Followers</div></div>
+          <div style="background:var(--bg);padding:14px;border-radius:12px;text-align:center;"><div style="font-size:24px;font-weight:800;">96</div><div style="font-size:11px;color:var(--text-muted);">AI Score</div></div>
+        </div>
+      </div>
+      <div class="portfolio-card full reveal" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+        <span style="display:flex;gap:10px;flex-wrap:wrap;">
+          <span style="padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12.5px;">🏠 San Francisco, CA 94102</span>
+          <span style="padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12.5px;">📧 alex.karmazin@tom.dev</span>
+          <span style="padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12.5px;">📞 +1 (415) 555-0182</span>
+        </span>
+        <span style="font-size:11px;color:var(--text-muted);">Member since 2024</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TRAIN ===== -->
+<section class="screen" id="train">
+  <div class="container" style="padding-top:120px;padding-bottom:80px;">
+    <div class="reveal"><div class="section-label">Training Studio</div></div>
+    <div class="reveal"><h2 class="section-title" style="margin-bottom:6px;">Train Optimal Model.</h2></div>
+    <div class="reveal"><p class="section-desc" style="margin-bottom:28px;">Fine-tune, embed, and deploy custom domain models with TOM's RAG pipeline.</p></div>
+    <div class="train-controls reveal">
+      <button class="train-ctrl-btn active">RAG Fine-Tune</button>
+      <button class="train-ctrl-btn">Vector Embedding</button>
+      <button class="train-ctrl-btn">Eval Suite</button>
+      <button class="train-ctrl-btn" style="margin-left:auto;background:var(--primary);color:var(--card);border-color:var(--primary);">▶ Start Training</button>
+    </div>
+    <div class="reveal" style="display:flex;justify-content:center;margin-bottom:24px;">
+      <button class="train-new-btn" id="trainNewBtn">+ Train New Model</button>
+    </div>
+    <div class="epoch-metrics reveal">
+      <div class="epoch-stat"><div class="val" id="epochVal">0</div><div class="lbl">Epochs</div></div>
+      <div class="epoch-stat"><div class="val" id="lossVal">—</div><div class="lbl">Loss</div></div>
+      <div class="epoch-stat"><div class="val" id="accVal">—</div><div class="lbl">Accuracy</div></div>
+    </div>
+    <div class="train-layout">
+      <div class="train-panel reveal-left"><h3><span class="live-dot"></span> Neural Graph Visualizer</h3><canvas id="node-visualizer"></canvas></div>
+      <div class="train-panel reveal-right"><h3><span class="live-dot"></span> Terminal / Training Log</h3><div class="terminal" id="terminal"><div><span class="prompt">$</span> <span class="green">tom train --model codebert --epochs 10</span></div><div><span class="prompt">[INFO]</span> Loading training dataset...</div><div><span class="prompt">[INFO]</span> Initializing RAG pipeline with chunk_size=512</div><div><span class="prompt">[INFO]</span> Generating vector embeddings...</div><div><span class="green">✓</span> Embedding dim: 768 | Tokens: 2,451,893</div><div><span class="prompt">[INFO]</span> Starting epoch 1/10</div><div>  loss: 0.2147 — acc: 89.32% — lr: 2e-5</div><div><span class="prompt">[INFO]</span> Starting epoch 2/10</div><div>  loss: 0.1572 — acc: 92.18% — lr: 1.8e-5</div><div><span class="prompt">[INFO]</span> Starting epoch 3/10</div><div>  loss: 0.1089 — acc: 94.57% — lr: 1.6e-5</div><div><span class="blue">⚡</span> Vector store updated — 12,844 indexed chunks</div><div><span class="prompt">[INFO]</span> Starting epoch 4/10</div><div>  loss: 0.0783 — acc: 95.91% — lr: 1.4e-5</div><div><span class="yellow">⚠</span> Plateau detected — reducing LR</div><div><span class="prompt">[INFO]</span> Starting epoch 5/10</div><div>  loss: 0.0541 — acc: 96.88% — lr: 1.0e-5</div><div><span class="green">✓</span> Checkpoint saved: epoch=5 val_loss=0.0582</div><div><span class="prompt">[INFO]</span> Starting epoch 6/10</div><div>  loss: 0.0347 — acc: 97.23% — lr: 8e-6</div><div><span class="prompt">[INFO]</span> Starting epoch 7/10</div><div>  loss: 0.0230 — acc: 97.41% — lr: 6e-6</div><div style="color:#4CAF50;">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div><div style="color:#4CAF50;font-weight:700;">✓ Training complete — best model saved.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   TOM — INTERACTION ENGINE v3
+   ═══════════════════════════════════════════════════ */
+window.addEventListener('load',()=>setTimeout(()=>document.getElementById('preloader').classList.add('hidden'),700));
+
+const progressBar=document.getElementById('scrollProgress');
+window.addEventListener('scroll',()=>{const h=document.documentElement.scrollHeight-window.innerHeight;progressBar.style.width=h>0?(window.scrollY/h*100)+'%':'0%'},{passive:true});
+
+let isTransitioning=false;
+function showScreen(id){
+  if(isTransitioning)return;
+  isTransitioning=true;
+  const prev=document.querySelector('.screen.active'),next=document.getElementById(id);
+  if(!next||prev===next){isTransitioning=false;return}
+  if(prev)prev.classList.remove('active');
+  next.classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.toggle('active',l.dataset.screen===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(()=>{isTransitioning=false;runRevealObserver();if(id==='home'){initChartBars();initGridCanvas()}if(id==='analyze')initProgressBars();if(id==='account')animateCounter('pfContrib',2400,1500);if(id==='projects')renderProjects();if(id==='messages'){renderChats();const fc=document.getElementById('chatList');if(fc&&!fc.querySelector('.chat-list-item'))document.getElementById('chatMain').innerHTML='<div class=\"chat-empty\"><div class=\"icon\">💬</div><div>Select a conversation to start chatting</div></div>'}},100);
+}
+
+document.querySelectorAll('.nav-link').forEach(link=>link.addEventListener('click',()=>showScreen(link.dataset.screen)));
+document.querySelector('.nav-cta')?.addEventListener('click',()=>showScreen('auth'));
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.hero-title .line span').forEach((el,i)=>{setTimeout(()=>{el.style.transition='transform .8s cubic-bezier(.16,1,.3,1), opacity .8s ease';el.style.transform='translateY(0)';el.style.opacity='1'},400+i*140)});
+  const desc=document.querySelector('.hero-desc');if(desc)setTimeout(()=>{desc.style.transition='opacity .8s ease, transform .8s cubic-bezier(.16,1,.3,1)';desc.style.opacity='1';desc.style.transform='translateY(0)'},850);
+});
+
+let revealObserver;
+function runRevealObserver(){
+  if(revealObserver)revealObserver.disconnect();
+  revealObserver=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');revealObserver.unobserve(e.target)}})},{threshold:.08,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale').forEach(el=>revealObserver.observe(el));
+}
+runRevealObserver();
+
+let lastScroll=0;const nav=document.getElementById('mainNav');
+window.addEventListener('scroll',()=>{const cur=window.scrollY;nav.classList.toggle('hidden-nav',cur>lastScroll&&cur>100);lastScroll=cur},{passive:true});
+
+// Particles
+(function(){
+  const canvas=document.getElementById('particle-canvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');let particles=[],mouse={x:-1000,y:-1000},animId;
+  function resize(){canvas.width=canvas.parentElement.offsetWidth;canvas.height=canvas.parentElement.offsetHeight}
+  resize();window.addEventListener('resize',resize);
+  for(let i=0;i<70;i++)particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,r:Math.random()*2+1});
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;
+      if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;
+      const dx=mouse.x-p.x,dy=mouse.y-p.y,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<140){p.vx-=dx*.00008;p.vy-=dy*.00008}
+      p.vx*=.98;p.vy*=.98;const spd=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+      if(spd>2){p.vx=p.vx/spd*2;p.vy=p.vy/spd*2}
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(65,45,21,0.2)';ctx.fill()
+    });
+    for(let i=0;i<particles.length;i++)for(let j=i+1;j<particles.length;j++){const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<110){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(65,45,21,${(1-dist/110)*.12})`;ctx.lineWidth=.7;ctx.stroke()}}
+    animId=requestAnimationFrame(draw)
+  }
+  draw();
+  canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top});
+  canvas.addEventListener('mouseleave',()=>{mouse.x=-1000;mouse.y=-1000});
+})()
+
+// Magnetic Buttons
+document.querySelectorAll('.magnet-btn').forEach(btn=>{
+  const p=parseFloat(btn.dataset.power)||4;
+  btn.addEventListener('mousemove',e=>{const r=btn.getBoundingClientRect();btn.style.transform=`translate(${(e.clientX-r.left-r.width/2)*p/22}px,${(e.clientY-r.top-r.height/2)*p/22}px)`});
+  btn.addEventListener('mouseleave',()=>{btn.style.transform=''});
+  btn.addEventListener('click',function(e){const r=this.getBoundingClientRect(),ri=document.createElement('span');ri.className='ripple';const s=Math.max(r.width,r.height);ri.style.width=ri.style.height=s+'px';ri.style.left=(e.clientX-r.left-s/2)+'px';ri.style.top=(e.clientY-r.top-s/2)+'px';this.appendChild(ri);setTimeout(()=>ri.remove(),600)});
+});
+
+// 3D Tilt
+document.querySelectorAll('.feature-card[data-tilt]').forEach(c=>{c.addEventListener('mousemove',e=>{const r=c.getBoundingClientRect();c.style.transform=`perspective(800px) rotateY(${((e.clientX-r.left)/r.width-.5)*8}deg) rotateX(${-((e.clientY-r.top)/r.height-.5)*8}deg) translateY(-6px)`});c.addEventListener('mouseleave',()=>{c.style.transform=''})});
+
+// Blog Scroll
+(function(){const w=document.querySelector('.blog-track-wrap'),t=document.getElementById('blogTrack');if(!w||!t)return;let d=false,sx,sl;w.addEventListener('mousedown',e=>{d=true;sx=e.pageX-w.offsetLeft;sl=w.scrollLeft;w.style.cursor='grabbing'});w.addEventListener('mouseleave',()=>{d=false;w.style.cursor='grab'});w.addEventListener('mouseup',()=>{d=false;w.style.cursor='grab'});w.addEventListener('mousemove',e=>{if(!d)return;e.preventDefault();w.scrollLeft=sl-(e.pageX-w.offsetLeft-sx)*1.5});w.addEventListener('wheel',e=>{if(Math.abs(e.deltaY)>0){e.preventDefault();w.scrollLeft+=e.deltaY}},{passive:false});let a=setInterval(()=>{if(!d){w.scrollLeft+=.7;if(w.scrollLeft>=w.scrollWidth-w.clientWidth)w.scrollLeft=0}},30);w.addEventListener('mouseenter',()=>clearInterval(a));w.addEventListener('mouseleave',()=>{a=setInterval(()=>{if(!d){w.scrollLeft+=.7;if(w.scrollLeft>=w.scrollWidth-w.clientWidth)w.scrollLeft=0}},30)})})();
+
+// Contributors
+(function(){const g=document.getElementById('bubbleGrid');if(!g)return;const n=['AK','MC','LR','JO','SV','TW','DP','NZ','RH','BF','CL','GM','AS','VK','JT','PQ'],ini=['Aiko K.','Marcus C.','Leila R.','Jamie O.','Samira V.','Tomas W.','Dasha P.','Nina Z.','Ryo H.','Bella F.','Carlo L.','Grace M.','Aki S.','Vik K.','Jean T.','Priya Q.'];n.forEach((v,i)=>{const b=document.createElement('div');b.className='contributor-bubble';b.textContent=v;const t=document.createElement('div');t.className='tooltip';t.textContent=ini[i];b.appendChild(t);g.appendChild(b)});g.addEventListener('mousemove',e=>{const r=g.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;g.querySelectorAll('.contributor-bubble').forEach(b=>{const bx=b.offsetLeft+b.offsetWidth/2,by=b.offsetTop+b.offsetHeight/2,dx=mx-bx,dy=my-by,d=Math.sqrt(dx*dx+dy*dy);if(d<180){const f=(180-d)/180*12;b.style.transform=`translate(${-dx/d*f}px,${-dy/d*f}px)`}else b.style.transform=''})});g.addEventListener('mouseleave',()=>g.querySelectorAll('.contributor-bubble').forEach(b=>b.style.transform=''))})();
+
+// FAQ
+document.querySelectorAll('.faq-item').forEach(i=>i.addEventListener('click',()=>i.classList.toggle('open')));
+document.querySelectorAll('.input-group input,.input-group textarea').forEach(inp=>{const g=inp.closest('.input-group');inp.addEventListener('focus',()=>g.classList.add('focused'));inp.addEventListener('blur',()=>{g.classList.remove('focused');if(inp.value)g.classList.add('filled');else g.classList.remove('filled')})});
+document.querySelectorAll('.auth-tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));document.getElementById(tab.dataset.tab==='oauth'?'formOAuth':'formGoogle').classList.add('active')})});
+
+// Chart Bars
+function initChartBars(){const c=document.getElementById('chartBars');if(!c||c.dataset.initialized)return;c.dataset.initialized='1';c.innerHTML='';for(let i=0;i<14;i++){const b=document.createElement('div');b.className='chart-bar';const h=Math.random()*55+25;b.style.height='0px';c.appendChild(b);setTimeout(()=>{b.style.height=h+'%'},200+i*70)}}
+
+// Progress Bars
+function initProgressBars(){document.querySelectorAll('.bar-fill[data-pct]').forEach(el=>{if(el.dataset.animated)return;el.dataset.animated='1';setTimeout(()=>{el.style.width=el.dataset.pct+'%'},300)})}
+
+// Animated Counter
+function animateCounter(id,target,duration){const el=document.getElementById(id);if(!el||el.dataset.animated)return;el.dataset.animated='1';const start=performance.now();function tick(now){const p=Math.min((now-start)/duration,1);el.textContent=Math.floor(p*target).toLocaleString();if(p<1)requestAnimationFrame(tick)}requestAnimationFrame(tick)}
+
+// Sidebar
+document.getElementById('sidebarToggle')?.addEventListener('click',()=>{const s=document.getElementById('sidebar');s.classList.toggle('collapsed');s.classList.toggle('open');document.getElementById('mainContent').classList.toggle('expanded');const gc=document.getElementById('gridCanvas');if(gc&&window.gridResize)window.gridResize()});
+document.querySelectorAll('.sidebar-item').forEach(item=>{item.addEventListener('click',function(){document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.dash-panel').forEach(p=>p.classList.remove('active'));const target=document.getElementById('dash'+this.dataset.dash.charAt(0).toUpperCase()+this.dataset.dash.slice(1));if(target){target.classList.add('active');if(this.dataset.dash==='overview')initChartBars();if(this.dataset.dash==='contributors')animateCounter('ghContrib',2400,1500)}})});
+
+// === LINE GRID CANVAS ===
+let gridAnimId;
+function initGridCanvas(){
+  const c=document.getElementById('gridCanvas');if(!c)return;
+  const ctx=c.getContext('2d');let offset=0;let cols,rows;let running=true;
+  function resize(){const sidebar=document.getElementById('sidebar');const sw=sidebar&&!sidebar.classList.contains('collapsed')&&!sidebar.classList.contains('open')?240:0;c.width=window.innerWidth-sw;c.height=window.innerHeight-72;c.style.width=c.width+'px';c.style.height=c.height+'px';cols=Math.ceil(c.width/48);rows=Math.ceil(c.height/48)}
+  window.gridResize=resize;resize();window.addEventListener('resize',resize);
+  function drawGrid(){
+    if(!running)return;
+    ctx.clearRect(0,0,c.width,c.height);
+    offset=(offset+0.15)%48;
+    ctx.strokeStyle='rgba(65,45,21,0.06)';ctx.lineWidth=.8;
+    for(let i=0;i<=cols;i++){const x=i*48-offset;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,c.height);ctx.stroke()}
+    for(let i=0;i<=rows;i++){const y=i*48-offset;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(c.width,y);ctx.stroke()}
+    ctx.strokeStyle='rgba(65,45,21,0.03)';ctx.lineWidth=.5;
+    for(let i=0;i<=cols;i++)for(let j=0;j<=rows;j++){const x=i*48-offset+24,y=j*48-offset+24;ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fillStyle='rgba(65,45,21,0.05)';ctx.fill()}
+    requestAnimationFrame(drawGrid)
+  }
+  drawGrid()
+}
+
+// === ANALYZE: Repo selection + TOM popup ===
+const repoData={
+  'tom-core':{files:['main.py','utils.py','src/analyzer.py','src/rag.py','tests/test_main.py','config.json','README.md'],code:`<span class="keyword">import</span> asyncio\
+<span class="keyword">from</span> typing <span class="keyword">import</span> List, Optional\
+\
+<span class="comment"># TOM Core Analyzer - Entry Point</span>\
+\
+<span class="keyword">class</span> <span class="func">RepoAnalyzer</span>:\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">def</span> <span class="func">__init__</span>(self, repo_path: <span class="keyword">str</span>):\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.path = repo_path\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.results = {}\
+\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">async def</span> <span class="func">analyze</span>(self):\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"""Run full analysis pipeline"""</span>\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tasks = [\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.chunk_code(),\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.index_vectors(),\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.scan_security()\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;results = <span class="keyword">await</span> asyncio.gather(*tasks)\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> results`,score:87,suggestions:[{b:'PASS',t:'Type hints present on all functions',c:'pass'},{b:'WARN',t:'Function chunk_code exceeds 50 lines',c:'warn'},{b:'ERR',t:'Hardcoded API key detected — use env var',c:'err'},{b:'PASS',t:'Async implementation uses proper patterns',c:'pass'},{b:'WARN',t:'Consider adding timeout to scan_security call',c:'warn'}]},
+  'neural-rag':{files:['index.ts','embedder.ts','src/retriever.ts','src/reranker.ts','tests/retriever.test.ts','config.yaml','README.md'],code:`<span class="keyword">import</span> { EmbeddingModel } <span class="keyword">from</span> <span class="string">'./embedder'</span>\
+<span class="keyword">import</span> { VectorStore } <span class="keyword">from</span> <span class="string">'./store'</span>\
+\
+<span class="comment">// Neural RAG Retriever</span>\
+\
+<span class="keyword">export class</span> <span class="func">RAGRetriever</span> {\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private</span> model: EmbeddingModel;\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private</span> store: VectorStore;\
+\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="func">constructor</span>(config: RAGConfig) {\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.model = <span class="keyword">new</span> EmbeddingModel(config);\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.store = <span class="keyword">new</span> VectorStore(config.dimension);\
+&nbsp;&nbsp;&nbsp;&nbsp;}\
+\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">async</span> <span class="func">retrieve</span>(query: <span class="keyword">string</span>, topK: <span class="keyword">number</span> = 10) {\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> embedding = <span class="keyword">await</span> this.model.embed(query);\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> this.store.search(embedding, topK);\
+&nbsp;&nbsp;&nbsp;&nbsp;}\
+}`,score:92,suggestions:[{b:'PASS',t:'Clean TypeScript with strict types',c:'pass'},{b:'PASS',t:'Proper async/await usage',c:'pass'},{b:'WARN',t:'Missing error handling for store.search',c:'warn'},{b:'PASS',t:'Config object pattern used correctly',c:'pass'}]},
+  'scorecard-api':{files:['lib.rs','main.rs','src/scorer.rs','src/reporter.rs','tests/integration.rs','Cargo.toml','README.md'],code:`<span class="keyword">use</span> serde::{Serialize, Deserialize};\
+<span class="keyword">use</span> std::collections::HashMap;\
+\
+<span class="comment">// Scorecard Engine</span>\
+\
+<span class="keyword">pub struct</span> <span class="func">Scorecard</span> {\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">pub</span> repository: String,\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">pub</span> metrics: HashMap<String, f64>,\
+}\
+\
+<span class="keyword">impl</span> Scorecard {\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">pub fn</span> <span class="func">calculate</span>(&self) -> f64 {\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.metrics.values()\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.copied()\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.sum::<f64>() / self.metrics.len() <span class="keyword">as</span> f64\
+&nbsp;&nbsp;&nbsp;&nbsp;}\
+}`,score:95,suggestions:[{b:'PASS',t:'Memory-safe Rust implementation',c:'pass'},{b:'PASS',t:'Strong typing throughout',c:'pass'},{b:'PASS',t:'Efficient iterator usage',c:'pass'},{b:'WARN',t:'Add documentation comments for public API',c:'warn'}]},
+  'marketplace-ui':{files:['App.tsx','components/Card.tsx','hooks/useMarket.ts','pages/Home.tsx','styles/global.css','package.json','README.md'],code:`<span class="keyword">import</span> React <span class="keyword">from</span> <span class="string">'react'</span>;\
+<span class="keyword">import</span> { ModelCard } <span class="keyword">from</span> <span class="string">'../components/Card'</span>;\
+\
+<span class="comment">// Marketplace Home Page</span>\
+\
+<span class="keyword">export const</span> <span class="func">MarketplaceHome</span>: React.FC = () => {\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> { models, loading } = <span class="func">useMarket</span>();\
+\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> (loading) <span class="keyword">return</span> <span class="string">&lt;Spinner /&gt;</span>;\
+\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> (\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">&lt;div className="grid"&gt;</span>\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{models.map(m => (\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">&lt;ModelCard key={m.id} model={m} /&gt;</span>\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;))}\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">&lt;/div&gt;</span>\
+&nbsp;&nbsp;&nbsp;&nbsp;);\
+};`,score:84,suggestions:[{b:'PASS',t:'React functional components with hooks',c:'pass'},{b:'WARN',t:'Missing key prop in list rendering',c:'warn'},{b:'ERR',t:'No error boundary for API failures',c:'err'},{b:'PASS',t:'Clean component separation',c:'pass'}]},
+  'cli-tools':{files:['main.go','internal/parser.go','internal/formatter.go','cmd/analyze.go','go.mod','Makefile','README.md'],code:`<span class="keyword">package</span> main\
+\
+<span class="keyword">import</span> (\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"fmt"</span>\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"os"</span>\
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"github.com/tom/cli/internal"</span>\
+)\
+\
+<span class="comment">// TOM CLI Entrypoint</span>\
+\
+<span class="keyword">func</span> <span class="func">main</span>() {\
+&nbsp;&nbsp;&nbsp;&nbsp;root := &cobra.Command{\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Use: <span class="string">"tom"</span>,\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Run: <span class="keyword">func</span>(cmd *cobra.Command, args []<span class="keyword">string</span>) {\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fmt.Println(<span class="string">"TOM CLI v2.0"</span>)\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},\
+&nbsp;&nbsp;&nbsp;&nbsp;}\
+&nbsp;&nbsp;&nbsp;&nbsp;root.Execute()\
+}`,score:78,suggestions:[{b:'PASS',t:'Well-structured CLI with cobra',c:'pass'},{b:'WARN',t:'Missing input validation on args',c:'warn'},{b:'ERR',t:'No graceful shutdown handling',c:'err'},{b:'WARN',t:'Hardcoded version string',c:'warn'}]}
+};
+
+document.querySelectorAll('.repo-item').forEach(item=>{
+  item.addEventListener('click',function(){
+    document.querySelectorAll('.repo-item').forEach(r=>r.classList.remove('active'));
+    this.classList.add('active');
+    const repo=this.dataset.repo;
+    const data=repoData[repo];
+    if(!data)return;
+
+    // Show TOM popup
+    const popup=document.getElementById('tomPopup');
+    popup.classList.add('show');
+    document.getElementById('analyzingBadge').textContent='analyzing...';
+    document.getElementById('analyzingBadge').style.background='rgba(212,164,74,0.15)';
+    document.getElementById('analyzingBadge').style.color='#D4A44A';
+
+    // Build file tree
+    const tree=document.getElementById('fileTree');
+    tree.innerHTML=`<div class="folder">📁 ${repo}/</div>`+data.files.map(f=>{
+      const depth=f.startsWith('src/')||f.startsWith('tests/')||f.startsWith('internal/')||f.startsWith('components/')||f.startsWith('hooks/')||f.startsWith('pages/')||f.startsWith('styles/')?'indent2':'indent';
+      return `<div class="file ${depth}" data-file="${f}">📄 ${f.split('/').pop()}</div>`;
+    }).join('');
+
+    document.getElementById('analyzeRepoTitle').textContent=repo;
+
+    // Simulate analysis delay
+    setTimeout(()=>{
+      popup.classList.remove('show');
+      document.getElementById('analyzingBadge').textContent='analyzed ✓';
+      document.getElementById('analyzingBadge').style.background='rgba(45,138,78,0.12)';
+      document.getElementById('analyzingBadge').style.color='#2D8A4E';
+
+      // Update code viewer
+      document.getElementById('codeViewer').innerHTML=data.code.replace(/\n/g,'<br>').replace(/\\n/g,'<br>');
+      document.getElementById('codeScore').textContent='Score: '+data.score;
+      document.getElementById('codeScore').style.color=data.score>=90?'#2D8A4E':data.score>=80?'#D4A44A':'#D44A4A';
+
+      // Update suggestions
+      const sl=document.getElementById('suggestionList');
+      sl.innerHTML=data.suggestions.map(s=>`<div class="suggestion-item"><span class="badge badge-${s.c}">${s.b}</span> ${s.t}</div>`).join('');
+    },1500);
+  });
+});
+
+// === SHARE PORTFOLIO ===
+document.getElementById('shareBtn')?.addEventListener('click',function(){
+  const url=window.location.href.split('?')[0]+'?screen=account';
+  navigator.clipboard.writeText(url).then(()=>{
+    this.textContent='✓ Copied!';
+    this.classList.add('copied');
+    setTimeout(()=>{this.textContent='📋 Share Portfolio';this.classList.remove('copied')},2000);
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    this.textContent='✓ Copied!';
+    this.classList.add('copied');
+    setTimeout(()=>{this.textContent='📋 Share Portfolio';this.classList.remove('copied')},2000);
+  });
+});
+
+// === TRAIN NEW MODEL ===
+document.getElementById('trainNewBtn')?.addEventListener('click',function(){
+  this.textContent='⏳ Creating...';
+  this.style.transform='scale(.95)';
+  setTimeout(()=>{this.textContent='✓ Model Created!';this.style.transform='scale(1)';this.style.background='#2D8A4E'},800);
+  setTimeout(()=>{this.textContent='+ Train New Model';this.style.background='';this.style.transform=''},3000);
+});
+
+// Neural Visualizer
+(function(){
+  const canvas=document.getElementById('node-visualizer');if(!canvas)return;
+  const ctx=canvas.getContext('2d');let nodes=[],connections=[],animFrame;
+  function resize(){const r=canvas.parentElement.getBoundingClientRect();canvas.width=r.width-60;canvas.height=340}
+  resize();window.addEventListener('resize',resize);
+  const layers=[4,6,8,6,4];let nodeId=0;const gap=canvas.width/(layers.length+1);
+  layers.forEach((count,li)=>{const x=gap*(li+1),sp=canvas.height/(count+1);for(let ni=0;ni<count;ni++)nodes.push({id:nodeId++,x,y:sp*(ni+1),vx:0,vy:0,layer:li,phase:Math.random()*Math.PI*2,activation:Math.random(),size:4+Math.random()*3})});
+  nodes.forEach(a=>nodes.forEach(b=>{if(b.layer===a.layer+1)connections.push({from:a,to:b})}));
+  let ep=0;
+  function draw(){ep++;ctx.clearRect(0,0,canvas.width,canvas.height);nodes.forEach(n=>{const w=Math.sin(ep*.03+n.phase)*.3+.5;n.activation=w;n.x+=Math.sin(ep*.01+n.phase)*.15;n.y+=Math.cos(ep*.015+n.phase*1.3)*.15});connections.forEach(c=>{const a=(c.from.activation+c.to.activation)/2;ctx.beginPath();ctx.moveTo(c.from.x,c.from.y);ctx.lineTo(c.to.x,c.to.y);ctx.strokeStyle=`rgba(65,45,21,${a*.2})`;ctx.lineWidth=a*1.2+.3;ctx.stroke()});nodes.forEach(n=>{const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.size*4);g.addColorStop(0,`rgba(65,45,21,${n.activation*.35})`);g.addColorStop(1,'rgba(65,45,21,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(n.x,n.y,n.size*4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(n.x,n.y,n.size,0,Math.PI*2);ctx.fillStyle=`rgba(31,21,12,${n.activation*.7+.3})`;ctx.fill();ctx.beginPath();ctx.arc(n.x,n.y,n.size*.5,0,Math.PI*2);ctx.fillStyle=`rgba(249,248,246,${n.activation*.4})`;ctx.fill()});animFrame=requestAnimationFrame(draw)}
+  draw();
+  setInterval(()=>{document.getElementById('epochVal')&&(document.getElementById('epochVal').textContent=Math.floor(Math.random()*3+8));document.getElementById('lossVal')&&(document.getElementById('lossVal').textContent=(Math.random()*.08+.005).toFixed(3));document.getElementById('accVal')&&(document.getElementById('accVal').textContent=(Math.random()*3+95).toFixed(1)+'%')},2000);
+})();
+
+// Terminal
+(function(){const t=document.getElementById('terminal');if(t){t.scrollTop=t.scrollHeight;setInterval(()=>{t.scrollTop=t.scrollHeight},1200)}})();
+
+// Model Button Ripple
+document.querySelectorAll('.model-btn').forEach(btn=>{btn.addEventListener('click',function(e){const r=this.getBoundingClientRect(),rip=document.createElement('span');rip.className='ripple';const s=Math.max(r.width,r.height);rip.style.width=rip.style.height=s+'px';rip.style.left=(e.clientX-r.left-s/2)+'px';rip.style.top=(e.clientY-r.top-s/2)+'px';this.appendChild(rip);setTimeout(()=>rip.remove(),600)})});
+
+// Train Control Buttons
+document.querySelectorAll('.train-ctrl-btn').forEach(btn=>{btn.addEventListener('click',function(){const g=this.closest('.train-controls');if(!g)return;g.querySelectorAll('.train-ctrl-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');this.style.transform='scale(.95)';setTimeout(()=>{this.style.transform=''},150)})});
+
+// CTA Bindings
+document.querySelectorAll('.magnet-btn-primary').forEach(btn=>{if(btn.closest('.hero-actions'))btn.addEventListener('click',()=>showScreen('auth'))});
+document.querySelectorAll('.magnet-btn-secondary').forEach(btn=>{btn.addEventListener('click',()=>showScreen('marketplace'))});
+console.log('%c TOM v3.0 ', 'background:#1F150C;color:#F0EBE1;font-size:20px;font-weight:bold;padding:8px 16px;border-radius:8px;');
+
+// ============================================================
+// BIDDING & CHAT SYSTEM
+// ============================================================
+
+const DB={
+  get(k,d){try{const v=localStorage.getItem('tom_'+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){localStorage.setItem('tom_'+k,JSON.stringify(v))},
+  init(){
+    if(!this.get('initialized')){
+      this.set('users',[
+        {id:'u1',name:'Alex Karmazin',avatar:'AK',email:'alex@tom.dev'},
+        {id:'u2',name:'Marcus Chen',avatar:'MC',email:'marcus@tom.dev'},
+        {id:'u3',name:'Leila Rahimi',avatar:'LR',email:'leila@tom.dev'}
+      ]);
+      this.set('currentUser',{id:'u1',name:'Alex Karmazin',avatar:'AK',email:'alex@tom.dev'});
+      this.set('projects',[
+        {id:'p1',title:'AI-Powered Code Reviewer',description:'Build an ML-based code review assistant that automatically detects bugs, style issues, and security vulnerabilities in Python and JavaScript pull requests.',budget:5000,category:'ML/AI',ownerId:'u1',status:'open',createdAt:Date.now()-864e5*3},
+        {id:'p2',title:'Developer Dashboard UI',description:'Design and implement a modern dashboard for developer analytics with real-time charts, activity feeds, and team collaboration widgets.',budget:3000,category:'Frontend',ownerId:'u1',status:'open',createdAt:Date.now()-864e5*5},
+        {id:'p3',title:'API Gateway Service',description:'Develop a high-performance API gateway with rate limiting, authentication, request transformation, and detailed logging capabilities.',budget:8000,category:'Backend',ownerId:'u1',status:'open',createdAt:Date.now()-864e5*7}
+      ]);
+      this.set('bids',[
+        {id:'b1',projectId:'p1',bidderId:'u2',amount:4500,message:'I have 5 years of experience building ML code review tools. I can deliver this in 3 weeks.',status:'pending',createdAt:Date.now()-864e5},
+        {id:'b2',projectId:'p1',bidderId:'u3',amount:4800,message:'Expert in NLP and static analysis. Check my portfolio for similar projects I have shipped.',status:'pending',createdAt:Date.now()-864e5*.5},
+        {id:'b3',projectId:'p2',bidderId:'u2',amount:2500,message:'UI/UX developer with 6 years of experience. I have built similar dashboards for startups.',status:'pending',createdAt:Date.now()-36e5}
+      ]);
+      this.set('chats',[]);this.set('messages',[]);this.set('initialized',true);
+    }
+  },
+  getUsers(){return this.get('users',[])},
+  getCurrentUser(){return this.get('currentUser',null)},
+  setCurrentUser(u){this.set('currentUser',u)},
+  getProjects(){return this.get('projects',[])},
+  addProject(p){const ps=this.getProjects();ps.unshift(p);this.set('projects',ps)},
+  updateProject(id,up){this.set('projects',this.getProjects().map(p=>p.id===id?{...p,...up}:p))},
+  getBids(pid){return this.getAllBids().filter(b=>b.projectId===pid)},
+  getAllBids(){return this.get('bids',[])},
+  addBid(b){const bs=this.getAllBids();bs.push(b);this.set('bids',bs)},
+  updateBid(id,up){this.set('bids',this.getAllBids().map(b=>b.id===id?{...b,...up}:b))},
+  getChats(){return this.get('chats',[])},
+  addChat(c){const cs=this.getChats();cs.push(c);this.set('chats',cs);return c},
+  getMessages(cid){return this.getAllMessages().filter(m=>m.chatId===cid)},
+  getAllMessages(){return this.get('messages',[])},
+  addMessage(m){const ms=this.getAllMessages();ms.push(m);this.set('messages',ms)},
+  getUser(id){return this.getUsers().find(u=>u.id===id)},
+  getProject(id){return this.getProjects().find(p=>p.id===id)},
+  genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5)}
+};
+
+function showToast(msg,type='success'){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.className='toast';document.body.appendChild(t)}
+  t.textContent=msg;t.className='toast '+type;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
+  clearTimeout(t._hide);t._hide=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function signInAs(userId){
+  const user=DB.getUser(userId)||DB.getUsers()[0];
+  if(user){DB.setCurrentUser(user);updateNavAuth();showScreen('home');showToast('Signed in as '+user.name,'success')}
+}
+
+function signOut(){
+  DB.setCurrentUser(null);updateNavAuth();showToast('Signed out','info')
+}
+
+function updateNavAuth(){
+  const btn=document.querySelector('.nav-cta');const user=DB.getCurrentUser();
+  if(user){
+    btn.innerHTML='<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:22px;height:22px;border-radius:50%;background:var(--card);color:var(--primary);font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;">'+user.avatar+'</span> '+user.name.split(' ')[0]+'</span>';
+    btn.onclick=function(e){
+      const m=document.getElementById('userMenu');if(m){m.remove();return}
+      const menu=document.createElement('div');menu.id='userMenu';
+      menu.style.cssText='position:absolute;top:100%;right:0;margin-top:4px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 12px 40px rgba(0,0,0,0.1);min-width:200px;z-index:9999';
+      const users=DB.getUsers();
+      menu.innerHTML='<div style="padding:8px 12px 10px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);margin-bottom:4px;">Signed in as <strong>'+user.name+'</strong></div>'+
+        users.map(u=>'<button onclick="switchUser(\''+u.id+'\');this.closest(\'#userMenu\').remove()" style="display:block;width:100%;text-align:left;padding:8px 12px;border:none;background:none;font-size:13px;cursor:pointer;border-radius:6px;font-family:var(--font);color:var(--text);transition:background .2s" onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'\'"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--card);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">'+u.avatar+'</span> '+u.name+(u.id===user.id?' <span style="color:var(--text-muted);font-size:11px;">(you)</span>':'')+'</span></button>').join('')+
+        '<div style="border-top:1px solid var(--border);margin:4px 0"></div>'+
+        '<button onclick="signOut();this.closest(\'#userMenu\').remove()" style="display:block;width:100%;text-align:left;padding:8px 12px;border:none;background:none;font-size:13px;cursor:pointer;border-radius:6px;font-family:var(--font);color:#D44A4A;transition:background .2s" onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'\'">Sign Out</button>';
+      btn.style.position='relative';btn.appendChild(menu);
+      document.addEventListener('click',function rm(ev){if(!menu.contains(ev.target)&&ev.target!==btn){menu.remove();document.removeEventListener('click',rm)}},{once:true});
+    };
+  }else{
+    btn.innerHTML='Sign In';btn.onclick=()=>showScreen('auth');
+  }
+}
+
+function switchUser(id){
+  const u=DB.getUser(id);if(!u)return;
+  DB.setCurrentUser(u);updateNavAuth();renderProjects();renderChats();
+  showToast('Switched to '+u.name,'info');
+}
+
+// ---- PROJECTS ----
+function renderProjects(){
+  const grid=document.getElementById('projectGrid');if(!grid)return;
+  const ps=DB.getProjects();const user=DB.getCurrentUser();
+  if(!ps.length){grid.innerHTML='<div class="empty-state"><div class="icon">📋</div><h3>No projects yet</h3><p>Be the first to upload a project for bidding.</p></div>';return}
+  grid.innerHTML=ps.map(p=>{
+    const bc=DB.getBids(p.id).length;const io=user&&p.ownerId===user.id;
+    const sl=p.status==='open'?'Open':p.status==='in-progress'?'In Progress':'Completed';
+    const sc=p.status==='open'?'status-open':p.status==='in-progress'?'status-in-progress':'status-completed';
+    const ow=DB.getUser(p.ownerId);
+    return '<div class="project-card" onclick="openProjectDetail(\''+p.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'+
+      '<span class="project-status '+sc+'">'+sl+'</span>'+
+      '<span style="font-size:20px;font-weight:800;color:var(--accent);">$'+p.budget.toLocaleString()+'</span></div>'+
+      '<h3>'+p.title+'</h3><p>'+p.description+'</p>'+
+      '<div class="project-meta"><span>📂 '+p.category+'</span><span>👤 '+(ow?ow.name:'Unknown')+'</span><span>💬 '+bc+' bid'+(bc!==1?'s':'')+'</span>'+(io?'<span style="color:var(--accent);font-weight:600;">✏️ You</span>':'')+'</div></div>';
+  }).join('');
+}
+
+function openProjectDetail(pid){
+  const p=DB.getProject(pid);if(!p)return;
+  const user=DB.getCurrentUser();const io=user&&p.ownerId===user.id;
+  const ow=DB.getUser(p.ownerId);
+  const bids=DB.getBids(pid).sort((a,b)=>b.amount-a.amount);
+  const myBid=user?bids.find(b=>b.bidderId===user.id):null;
+  const modal=document.createElement('div');modal.className='modal-overlay show';
+  modal.onclick=(e)=>{if(e.target===modal)modal.remove()};
+  let bidSec='';
+  if(io){
+    if(p.status==='open'){
+      bidSec=bids.length?'<h4 style="margin-top:20px;font-size:14px;font-weight:700;">Bids ('+bids.length+')</h4><div class="bid-list">'+
+        bids.map(b=>{const bd=DB.getUser(b.bidderId);return '<div class="bid-item"><div class="bid-avatar">'+(bd?bd.avatar:'?')+'</div><div class="bid-info"><div class="name">'+(bd?bd.name:'Unknown')+'</div><div class="msg">'+b.message+'</div></div><div class="bid-amount">$'+b.amount.toLocaleString()+'</div>'+(b.status==='pending'?'<div class="bid-actions"><button class="bid-accept" onclick="event.stopPropagation();acceptBid(\''+b.id+'\',\''+pid+'\')">Accept</button><button class="bid-reject" onclick="event.stopPropagation();rejectBid(\''+b.id+'\')">Reject</button></div>':'<span class="bid-status '+b.status+'">'+b.status+'</span>')+'</div>'}).join('')+'</div>'
+        :'<p style="margin-top:16px;color:var(--text-muted);font-size:14px;">No bids yet. Check back later.</p>';
+    } else {
+      bidSec='<p style="margin-top:16px;color:var(--text-muted);font-size:14px;">This project is '+p.status+'.</p>';
+    }
+  } else if(user){
+    if(myBid){
+      bidSec='<div style="margin-top:16px;padding:14px 16px;background:var(--bg);border-radius:12px;"><div style="font-size:13px;color:var(--text-muted);">Your bid: <strong style="font-size:18px;color:var(--accent);">$'+myBid.amount.toLocaleString()+'</strong></div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Status: <span class="bid-status '+myBid.status+'">'+myBid.status+'</span></div></div>';
+    } else if(p.status==='open'){
+      bidSec='<div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);"><h4 style="font-size:14px;font-weight:700;margin-bottom:10px;">Place a Bid</h4><div style="display:flex;gap:12px;flex-wrap:wrap;"><div style="flex:1;min-width:150px;"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Your Bid ($)</label><input type="number" id="bidAmount" value="'+Math.round(p.budget*0.8)+'" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);font-size:14px;font-family:var(--font);"></div><div style="flex:2;min-width:200px;"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Message</label><textarea id="bidMessage" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);font-size:13px;font-family:var(--font);resize:vertical;">I am interested in this project. Let\'s discuss!</textarea></div></div><button onclick="submitBid(\''+pid+'\')" style="margin-top:12px;padding:10px 28px;background:var(--accent);color:var(--card);border:none;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font);">Submit Bid</button></div>';
+    }
+  } else {
+    bidSec='<p style="margin-top:16px;color:var(--text-muted);font-size:14px;"><a href="#" onclick="showScreen(\'auth\');return false;" style="color:var(--accent);font-weight:600;">Sign in</a> to place a bid.</p>';
+  }
+  const sc=p.status==='open'?'status-open':p.status==='in-progress'?'status-in-progress':'status-completed';
+  modal.innerHTML='<div class="modal"><button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()">×</button>'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><span class="project-status '+sc+'">'+p.status+'</span><span style="font-size:28px;font-weight:800;color:var(--accent);">$'+p.budget.toLocaleString()+'</span></div>'+
+    '<h2>'+p.title+'</h2><p style="font-size:14px;color:var(--text-muted);line-height:1.7;margin-top:8px;">'+p.description+'</p>'+
+    '<div style="display:flex;gap:16px;margin-top:14px;font-size:13px;color:var(--text-muted);flex-wrap:wrap;"><span>📂 '+p.category+'</span><span>👤 '+(ow?ow.name:'Unknown')+'</span><span>📅 '+new Date(p.createdAt).toLocaleDateString()+'</span></div>'+
+    bidSec+'</div>';
+  document.body.appendChild(modal);
+  document.getElementById('bidAmount')?.focus();
+}
+
+function submitBid(pid){
+  const amt=parseInt(document.getElementById('bidAmount')?.value);
+  const msg=document.getElementById('bidMessage')?.value.trim();
+  const user=DB.getCurrentUser();
+  if(!user){showToast('Please sign in first','error');return}
+  if(!amt||amt<1){showToast('Enter a valid bid amount','error');return}
+  if(!msg){showToast('Enter a message for your bid','error');return}
+  const p=DB.getProject(pid);if(!p)return;
+  if(amt>p.budget*3){showToast('Bid amount seems too high','error');return}
+  DB.addBid({id:DB.genId(),projectId:pid,bidderId:user.id,amount:amt,message:msg,status:'pending',createdAt:Date.now()});
+  showToast('Bid placed successfully!','success');
+  document.querySelector('.modal-overlay')?.remove();renderProjects();
+}
+
+function acceptBid(bidId,pid){
+  if(!confirm('Accept this bid? A direct chat will open with the bidder.'))return;
+  const bid=DB.getAllBids().find(b=>b.id===bidId);if(!bid)return;
+  DB.updateBid(bidId,{status:'accepted'});DB.updateProject(pid,{status:'in-progress'});
+  DB.getAllBids().forEach(b=>{if(b.projectId===pid&&b.id!==bidId&&b.status==='pending')DB.updateBid(b.id,{status:'rejected'})});
+  const pj=DB.getProject(pid);
+  const existing=DB.getChats().filter(c=>c.projectId===pid);
+  if(!existing.length&&pj)DB.addChat({id:DB.genId(),projectId:pid,ownerId:pj.ownerId,bidderId:bid.bidderId,bidId,createdAt:Date.now()});
+  document.querySelector('.modal-overlay')?.remove();renderProjects();renderChats();
+  showToast('Bid accepted! Chat opened.','success');
+}
+
+function rejectBid(bidId){
+  DB.updateBid(bidId,{status:'rejected'});
+  document.querySelector('.modal-overlay')?.remove();renderProjects();
+  showToast('Bid rejected','info');
+}
+
+// ---- UPLOAD ----
+function showUploadForm(){
+  const user=DB.getCurrentUser();
+  if(!user){showToast('Please sign in first','error');showScreen('auth');return}
+  const modal=document.createElement('div');modal.className='modal-overlay show';
+  modal.onclick=(e)=>{if(e.target===modal)modal.remove()};
+  modal.innerHTML='<div class="modal"><button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()">×</button>'+
+    '<h2>Upload Project</h2><p style="font-size:14px;color:var(--text-muted);margin-bottom:4px;">Post a project for developers to bid on.</p>'+
+    '<label>Project Title</label><input type="text" id="newProjTitle" placeholder="e.g. AI Chatbot Integration">'+
+    '<label>Description</label><textarea id="newProjDesc" rows="4" placeholder="Describe your project in detail..."></textarea>'+
+    '<label>Category</label><select id="newProjCat"><option value="Frontend">Frontend</option><option value="Backend">Backend</option><option value="ML/AI">ML/AI</option><option value="Mobile">Mobile</option><option value="DevOps">DevOps</option><option value="Blockchain">Blockchain</option><option value="Other">Other</option></select>'+
+    '<label>Budget ($)</label><input type="number" id="newProjBudget" placeholder="5000" min="1">'+
+    '<button onclick="submitProject()" style="margin-top:20px;width:100%;padding:12px;background:var(--accent);color:var(--card);border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;transition:all .3s;font-family:var(--font);">Post Project</button></div>';
+  document.body.appendChild(modal);document.getElementById('newProjTitle')?.focus();
+}
+
+function submitProject(){
+  const title=document.getElementById('newProjTitle')?.value.trim();
+  const desc=document.getElementById('newProjDesc')?.value.trim();
+  const cat=document.getElementById('newProjCat')?.value;
+  const budget=parseInt(document.getElementById('newProjBudget')?.value);
+  const user=DB.getCurrentUser();
+  if(!user){showToast('Please sign in first','error');return}
+  if(!title){showToast('Enter a project title','error');return}
+  if(!desc){showToast('Enter a project description','error');return}
+  if(!budget||budget<1){showToast('Enter a valid budget','error');return}
+  DB.addProject({id:DB.genId(),title,description:desc,budget,category:cat,ownerId:user.id,status:'open',createdAt:Date.now()});
+  document.querySelector('.modal-overlay')?.remove();renderProjects();
+  showToast('Project posted!','success');
+}
+
+// ---- CHAT ----
+function renderChats(){
+  const list=document.getElementById('chatList');if(!list)return;
+  const user=DB.getCurrentUser();
+  const chats=user?DB.getChats().filter(c=>c.ownerId===user.id||c.bidderId===user.id):[];
+  if(!chats.length){
+    list.innerHTML='<h4>Messages</h4><div style="padding:32px 16px;text-align:center;color:var(--text-muted);font-size:13px;">No conversations yet.<br>Accept a bid to start chatting.</div>';
+    return;
+  }
+  list.innerHTML='<h4>Messages</h4>'+chats.map(c=>{
+    const p=DB.getProject(c.projectId);const oid=c.ownerId===user.id?c.bidderId:c.ownerId;
+    const o=DB.getUser(oid);const msgs=DB.getMessages(c.id);
+    const lm=msgs.length?msgs[msgs.length-1]:null;
+    const pv=lm?lm.text.substring(0,40)+(lm.text.length>40?'...':''):'No messages yet';
+    const t=lm?new Date(lm.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+    return '<div class="chat-list-item" data-chat="'+c.id+'" onclick="openChat(\''+c.id+'\')"><div class="bid-avatar" style="width:32px;height:32px;font-size:11px;">'+(o?o.avatar:'?')+'</div><div style="flex:1;min-width:0;"><div class="chat-name">'+(o?o.name:'Unknown')+(p?' — '+p.title:'')+'</div><div class="chat-preview">'+pv+'</div></div><div class="chat-time">'+t+'</div></div>';
+  }).join('');
+}
+
+function openChat(cid){
+  document.querySelectorAll('.chat-list-item').forEach(el=>el.classList.remove('active'));
+  const cel=document.querySelector('.chat-list-item[data-chat="'+cid+'"]');
+  if(cel)cel.classList.add('active');
+  const main=document.getElementById('chatMain');if(!main)return;
+  const user=DB.getCurrentUser();const chat=DB.getChats().find(c=>c.id===cid);
+  if(!chat||!user)return;
+  const p=DB.getProject(chat.projectId);const oid=chat.ownerId===user.id?chat.bidderId:chat.ownerId;
+  const o=DB.getUser(oid);const msgs=DB.getMessages(cid);
+  main.innerHTML='<div class="chat-header"><div class="bid-avatar" style="width:28px;height:28px;font-size:10px;">'+(o?o.avatar:'?')+'</div>'+(o?o.name:'Unknown')+(p?' <span style="font-weight:400;font-size:12.5px;color:var(--text-muted);">— '+p.title+'</span>':'')+'</div>'+
+    '<div class="chat-messages" id="chatMessages">'+(msgs.length?msgs.map(m=>{const s=m.senderId===user.id;return '<div class="chat-msg '+(s?'sent':'received')+'">'+m.text+'<span class="time">'+new Date(m.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</span></div>'}).join(''):'<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:40px;">Start a conversation</div>')+'</div>'+
+    '<div class="chat-input-wrap"><input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key===\'Enter\')sendMessage(\''+cid+'\')"><button class="chat-send" onclick="sendMessage(\''+cid+'\')">Send</button></div>';
+  const mc=document.getElementById('chatMessages');if(mc)setTimeout(()=>mc.scrollTop=mc.scrollHeight,50);
+  document.getElementById('chatInput')?.focus();
+}
+
+function sendMessage(cid){
+  const inp=document.getElementById('chatInput');if(!inp||!inp.value.trim())return;
+  const user=DB.getCurrentUser();if(!user){showToast('Sign in to send messages','error');return}
+  DB.addMessage({id:DB.genId(),chatId:cid,senderId:user.id,text:inp.value.trim(),createdAt:Date.now()});
+  inp.value='';openChat(cid);renderChats();
+}
+
+// ---- INIT ----
+DB.init();updateNavAuth();
+</script>
+</body>
+</html>
